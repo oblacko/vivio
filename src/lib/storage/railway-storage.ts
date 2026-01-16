@@ -1,0 +1,226 @@
+/**
+ * Railway S3-Compatible Storage Helper
+ * Функции для работы с медиа-файлами в Railway Storage (S3-compatible)
+ */
+
+import {
+  S3Client,
+  PutObjectCommand,
+  DeleteObjectCommand,
+  HeadObjectCommand,
+  GetObjectCommand
+} from "@aws-sdk/client-s3";
+
+const RAILWAY_ENDPOINT = process.env.RAILWAY_ENDPOINT_URL;
+const RAILWAY_BUCKET_NAME = process.env.RAILWAY_BUCKET_NAME;
+const RAILWAY_ACCESS_KEY_ID = process.env.RAILWAY_ACCESS_KEY_ID;
+const RAILWAY_SECRET_ACCESS_KEY = process.env.RAILWAY_SECRET_ACCESS_KEY;
+
+if (!RAILWAY_ENDPOINT || !RAILWAY_BUCKET_NAME || !RAILWAY_ACCESS_KEY_ID || !RAILWAY_SECRET_ACCESS_KEY) {
+  console.warn("Railway storage environment variables are not fully configured");
+}
+
+const s3Client = new S3Client({
+  endpoint: RAILWAY_ENDPOINT,
+  region: "auto", // Railway использует "auto" region
+  credentials: {
+    accessKeyId: RAILWAY_ACCESS_KEY_ID || "",
+    secretAccessKey: RAILWAY_SECRET_ACCESS_KEY || "",
+  },
+  // Railway не требует подписи для некоторых операций, но оставим по умолчанию
+  forcePathStyle: true, // Использовать path-style URLs
+});
+
+export interface UploadResult {
+  url: string;
+  pathname: string;
+  bucket: string;
+  key: string;
+}
+
+/**
+ * Загрузка изображения от пользователя
+ */
+export async function uploadImage(
+  file: File,
+  filename?: string
+): Promise<UploadResult> {
+  if (!RAILWAY_ENDPOINT || !RAILWAY_BUCKET_NAME || !RAILWAY_ACCESS_KEY_ID || !RAILWAY_SECRET_ACCESS_KEY) {
+    throw new Error("Railway storage is not configured");
+  }
+
+  // Валидация типа файла
+  if (!file.type.startsWith("image/")) {
+    throw new Error("File must be an image");
+  }
+
+  // Валидация размера (макс 10MB)
+  const MAX_SIZE = 10 * 1024 * 1024; // 10MB
+  if (file.size > MAX_SIZE) {
+    throw new Error("File size must be less than 10MB");
+  }
+
+  const key = filename || `images/${Date.now()}-${file.name}`;
+
+  try {
+    const command = new PutObjectCommand({
+      Bucket: RAILWAY_BUCKET_NAME,
+      Key: key,
+      Body: file,
+      ContentType: file.type,
+      ACL: "public-read", // Делаем файлы публично доступными
+    });
+
+    await s3Client.send(command);
+
+    // Формируем публичный URL
+    const url = `${RAILWAY_ENDPOINT}/${RAILWAY_BUCKET_NAME}/${key}`;
+
+    return {
+      url,
+      pathname: key,
+      bucket: RAILWAY_BUCKET_NAME,
+      key,
+    };
+  } catch (error) {
+    throw new Error(`Failed to upload image: ${error}`);
+  }
+}
+
+/**
+ * Скачивание видео из внешнего URL и загрузка в Railway Storage
+ */
+export async function uploadVideoFromUrl(
+  videoUrl: string,
+  filename: string
+): Promise<UploadResult> {
+  if (!RAILWAY_ENDPOINT || !RAILWAY_BUCKET_NAME || !RAILWAY_ACCESS_KEY_ID || !RAILWAY_SECRET_ACCESS_KEY) {
+    throw new Error("Railway storage is not configured");
+  }
+
+  try {
+    // Скачивание видео
+    const response = await fetch(videoUrl);
+    if (!response.ok) {
+      throw new Error(`Failed to download video: ${response.statusText}`);
+    }
+
+    const blob = await response.blob();
+    const file = new File([blob], filename, { type: "video/mp4" });
+
+    const key = `videos/${filename}`;
+
+    const command = new PutObjectCommand({
+      Bucket: RAILWAY_BUCKET_NAME,
+      Key: key,
+      Body: file,
+      ContentType: "video/mp4",
+      ACL: "public-read",
+    });
+
+    await s3Client.send(command);
+
+    // Формируем публичный URL
+    const url = `${RAILWAY_ENDPOINT}/${RAILWAY_BUCKET_NAME}/${key}`;
+
+    return {
+      url,
+      pathname: key,
+      bucket: RAILWAY_BUCKET_NAME,
+      key,
+    };
+  } catch (error) {
+    throw new Error(`Failed to upload video from URL: ${error}`);
+  }
+}
+
+/**
+ * Удаление файла из Railway Storage
+ */
+export async function deleteFile(key: string): Promise<void> {
+  if (!RAILWAY_ENDPOINT || !RAILWAY_BUCKET_NAME || !RAILWAY_ACCESS_KEY_ID || !RAILWAY_SECRET_ACCESS_KEY) {
+    throw new Error("Railway storage is not configured");
+  }
+
+  try {
+    const command = new DeleteObjectCommand({
+      Bucket: RAILWAY_BUCKET_NAME,
+      Key: key,
+    });
+
+    await s3Client.send(command);
+  } catch (error) {
+    throw new Error(`Failed to delete file: ${error}`);
+  }
+}
+
+/**
+ * Проверка существования файла
+ */
+export async function fileExists(key: string): Promise<boolean> {
+  if (!RAILWAY_ENDPOINT || !RAILWAY_BUCKET_NAME || !RAILWAY_ACCESS_KEY_ID || !RAILWAY_SECRET_ACCESS_KEY) {
+    return false;
+  }
+
+  try {
+    const command = new HeadObjectCommand({
+      Bucket: RAILWAY_BUCKET_NAME,
+      Key: key,
+    });
+
+    await s3Client.send(command);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Получение файла как blob (для обработки на клиенте)
+ */
+export async function getFileAsBlob(key: string): Promise<Blob> {
+  if (!RAILWAY_ENDPOINT || !RAILWAY_BUCKET_NAME || !RAILWAY_ACCESS_KEY_ID || !RAILWAY_SECRET_ACCESS_KEY) {
+    throw new Error("Railway storage is not configured");
+  }
+
+  try {
+    const command = new GetObjectCommand({
+      Bucket: RAILWAY_BUCKET_NAME,
+      Key: key,
+    });
+
+    const response = await s3Client.send(command);
+
+    if (!response.Body) {
+      throw new Error("File body is empty");
+    }
+
+    // Преобразуем поток в Blob
+    const stream = response.Body as ReadableStream;
+    const reader = stream.getReader();
+    const chunks: Uint8Array[] = [];
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      chunks.push(value);
+    }
+
+    const blob = new Blob(chunks);
+    return blob;
+  } catch (error) {
+    throw new Error(`Failed to get file: ${error}`);
+  }
+}
+
+/**
+ * Генерация thumbnail из видео (заглушка для MVP)
+ * В будущем можно использовать ffmpeg или другой инструмент
+ */
+export async function generateThumbnail(
+  videoUrl: string
+): Promise<string | null> {
+  // TODO: Реализовать генерацию thumbnail из первого кадра видео
+  // Для MVP возвращаем null, thumbnail будет генерироваться на клиенте
+  return null;
+}
