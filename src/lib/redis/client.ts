@@ -1,25 +1,20 @@
 /**
- * Upstash Redis Client
+ * Vercel KV (Redis) Client
  * Используется для rate limiting и кеширования
  */
 
-import { Redis } from "@upstash/redis";
+import { kv } from "@vercel/kv";
 
-const UPSTASH_REDIS_REST_URL = process.env.UPSTASH_REDIS_REST_URL;
-const UPSTASH_REDIS_REST_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN;
+const KV_REST_API_URL = process.env.KV_REST_API_URL;
+const KV_REST_API_TOKEN = process.env.KV_REST_API_TOKEN;
 
-if (!UPSTASH_REDIS_REST_URL || !UPSTASH_REDIS_REST_TOKEN) {
+if (!KV_REST_API_URL || !KV_REST_API_TOKEN) {
   console.warn(
-    "UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN are not set"
+    "KV_REST_API_URL and KV_REST_API_TOKEN are not set. Using fallback mode."
   );
 }
 
-export const redis = UPSTASH_REDIS_REST_URL && UPSTASH_REDIS_REST_TOKEN
-  ? new Redis({
-      url: UPSTASH_REDIS_REST_URL,
-      token: UPSTASH_REDIS_REST_TOKEN,
-    })
-  : null;
+export const redis = kv;
 
 /**
  * Rate limiting
