@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { uploadImage, getFileAsBlob } from "@/lib/storage/railway-storage";
+import { put, del } from "@vercel/blob";
+import { getFileAsBlob } from "@/lib/storage/railway-storage";
 
 export const runtime = "nodejs";
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const BLOB_READ_WRITE_TOKEN = process.env.BLOB_VIVIO_READ_WRITE_TOKEN || process.env.BLOB_READ_WRITE_TOKEN;
 
 export async function OPTIONS(request: NextRequest) {
   return new NextResponse(null, {
@@ -27,16 +29,27 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    console.log('📂 Serving file:', key, 'from URL:', request.url);
+    // Получение файла из Railway storage
     const blob = await getFileAsBlob(key);
 
+    // Определение типа контента на основе расширения файла
+    let contentType = "application/octet-stream";
+    if (key.toLowerCase().endsWith(".jpg") || key.toLowerCase().endsWith(".jpeg")) {
+      contentType = "image/jpeg";
+    } else if (key.toLowerCase().endsWith(".png")) {
+      contentType = "image/png";
+    } else if (key.toLowerCase().endsWith(".gif")) {
+      contentType = "image/gif";
+    } else if (key.toLowerCase().endsWith(".webp")) {
+      contentType = "image/webp";
+    }
+
+    // Возвращаем файл как Response
     return new NextResponse(blob, {
       headers: {
-        "Content-Type": "image/*", // Можно улучшить определение типа
-        "Cache-Control": "public, max-age=31536000", // Кэширование на год
-        "Access-Control-Allow-Origin": "*", // Разрешаем доступ для всех доменов (для Grok API)
-        "Access-Control-Allow-Methods": "GET, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type",
+        "Content-Type": contentType,
+        "Cache-Control": "public, max-age=31536000", // Кеширование на 1 год
+        "Access-Control-Allow-Origin": "*",
       },
     });
   } catch (error) {
@@ -45,13 +58,20 @@ export async function GET(request: NextRequest) {
       {
         error: error instanceof Error ? error.message : "Failed to retrieve file",
       },
-      { status: 500 }
+      { status: 404 }
     );
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
+    if (!BLOB_READ_WRITE_TOKEN) {
+      return NextResponse.json(
+        { error: "Blob storage not configured" },
+        { status: 500 }
+      );
+    }
+
     const formData = await request.formData();
     const file = formData.get("file") as File | null;
 
@@ -78,14 +98,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Загрузка в Railway Storage
-    const result = await uploadImage(file);
+    // Конвертируем File в ArrayBuffer, затем в Uint8Array для Vercel Blob
+    const arrayBuffer = await file.arrayBuffer();
+    const buffer = new Uint8Array(arrayBuffer);
 
-    // Возвращаем прямой URL из Railway Storage для более быстрого доступа
+    // Загружаем в Vercel Blob
+    const blob = await put(`images/${Date.now()}-${file.name}`, buffer, {
+      access: 'public',
+      contentType: file.type,
+      token: BLOB_READ_WRITE_TOKEN,
+    });
+
+    // Возвращаем публичный URL
     return NextResponse.json({
       success: true,
-      url: result.url,
-      pathname: result.pathname,
+      url: blob.url,
+      pathname: blob.pathname,
     });
   } catch (error) {
     console.error("Upload error:", error);
