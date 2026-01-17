@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useCallback } from "react";
+import NextImage from "next/image";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Card } from "@/components/ui/card";
@@ -456,9 +457,11 @@ export function FileUpload({ onClose }: FileUploadProps) {
             <Card className="p-4 bg-gray-50">
               {croppedImage && (
                 <div className="relative aspect-square max-w-md mx-auto bg-white rounded-lg overflow-hidden shadow-sm">
-                  <img
+                  <NextImage
                     src={croppedImage}
                     alt="Cropped"
+                    width={400}
+                    height={400}
                     className="w-full h-full object-contain"
                   />
                 </div>

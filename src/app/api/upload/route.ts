@@ -98,9 +98,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Конвертируем File в ArrayBuffer, затем в Uint8Array для Vercel Blob
+    // Конвертируем File в Buffer для Vercel Blob
     const arrayBuffer = await file.arrayBuffer();
-    const buffer = new Uint8Array(arrayBuffer);
+    const buffer = Buffer.from(arrayBuffer);
 
     // Загружаем в Vercel Blob
     const blob = await put(`images/${Date.now()}-${file.name}`, buffer, {
