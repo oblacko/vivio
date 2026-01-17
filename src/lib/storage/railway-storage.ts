@@ -72,13 +72,17 @@ export async function uploadImage(
       Key: key,
       Body: buffer,
       ContentType: file.type,
-      ACL: "public-read", // Делаем изображения публичными для доступа Grok
+      // Railway storage (Tigris) не поддерживает ACL, используем публичный bucket
+      // ACL: "public-read",
     });
 
     await s3Client.send(command);
 
-    // Формируем публичный URL
-    const url = `${RAILWAY_ENDPOINT}/${RAILWAY_BUCKET_NAME}/${key}`;
+    // Для Railway storage используем API endpoint для публичного доступа
+    // вместо прямого URL, поскольку ACL не поддерживается
+    // Используем полный URL для совместимости с Grok API
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+    const url = `${baseUrl}/api/upload?key=${key}`;
 
     return {
       url,

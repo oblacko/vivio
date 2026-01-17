@@ -72,12 +72,19 @@ class GrokClient {
       const errorText = await response.text();
       let errorMessage = `HTTP ${response.status}`;
 
+      console.error("❌ Grok API ошибка:");
+      console.error("📊 Status:", response.status, response.statusText);
+      console.error("📄 Response body:", errorText);
+
       try {
         const errorData = JSON.parse(errorText);
+        console.error("📋 Parsed error data:", JSON.stringify(errorData, null, 2));
         if (errorData.message) {
           errorMessage = errorData.message;
         } else if (errorData.error) {
           errorMessage = errorData.error;
+        } else if (errorData.code) {
+          errorMessage = `API returned code ${errorData.code}: ${errorData.message || errorData.error || 'Unknown error'}`;
         }
       } catch {
         // If not JSON, use the raw text
@@ -114,22 +121,36 @@ class GrokClient {
       },
     };
 
-    const response = await this.request<{
-      code: number;
-      message: string;
-      data: { taskId: string };
-    }>("/jobs/createTask", {
-      method: "POST",
-      body: JSON.stringify(payload),
-    });
+    console.log("🚀 Отправка запроса в Grok API:");
+    console.log("📋 Payload:", JSON.stringify(payload, null, 2));
+    console.log("🔗 URL:", `${this.baseUrl}/jobs/createTask`);
+    console.log("🔑 API Key:", this.apiKey ? `${this.apiKey.substring(0, 10)}...` : "НЕ УСТАНОВЛЕН");
 
-    if (response.code !== 200) {
-      throw new Error(`Grok API error: ${response.message || `API returned code ${response.code}`}`);
+    try {
+      const response = await this.request<{
+        code: number;
+        message: string;
+        data: { taskId: string };
+      }>("/jobs/createTask", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+
+      console.log("✅ Ответ от Grok API:", JSON.stringify(response, null, 2));
+
+      if (response.code !== 200) {
+        console.error("❌ Grok API вернул ошибку:", response);
+        throw new Error(`Grok API error: ${response.message || `API returned code ${response.code}`}`);
+      }
+
+      console.log("✅ Task ID получен:", response.data.taskId);
+      return {
+        taskId: response.data.taskId,
+      };
+    } catch (error) {
+      console.error("❌ Ошибка при вызове Grok API:", error);
+      throw error;
     }
-
-    return {
-      taskId: response.data.taskId,
-    };
   }
 
   /**

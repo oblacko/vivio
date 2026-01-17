@@ -4,6 +4,9 @@ import "./globals.css";
 import { QueryProvider } from "@/lib/providers/query-provider";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { Navigation } from "@/components/navigation";
+import { Toaster } from "@/components/ui/sonner";
+import { FloatingUploadButton } from "@/components/upload/FloatingUploadButton";
+import { UploadProvider } from "@/lib/contexts/upload-context";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -21,8 +24,14 @@ export default function RootLayout({
     <html lang="ru">
       <body className={inter.className}>
         <ErrorBoundary>
-          <Navigation />
-          <QueryProvider>{children}</QueryProvider>
+          <UploadProvider>
+            <Navigation />
+            <QueryProvider>
+              {children}
+              <FloatingUploadButton />
+            </QueryProvider>
+            <Toaster />
+          </UploadProvider>
         </ErrorBoundary>
       </body>
     </html>

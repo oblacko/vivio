@@ -5,6 +5,16 @@ export const runtime = "nodejs";
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
+export async function OPTIONS(request: NextRequest) {
+  return new NextResponse(null, {
+    headers: {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type",
+    },
+  });
+}
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -23,6 +33,9 @@ export async function GET(request: NextRequest) {
       headers: {
         "Content-Type": "image/*", // Можно улучшить определение типа
         "Cache-Control": "public, max-age=31536000", // Кэширование на год
+        "Access-Control-Allow-Origin": "*", // Разрешаем доступ для всех доменов (для Grok API)
+        "Access-Control-Allow-Methods": "GET, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type",
       },
     });
   } catch (error) {

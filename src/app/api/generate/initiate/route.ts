@@ -21,30 +21,34 @@ export async function POST(request: NextRequest) {
 
     if (validated.challengeId) {
       // Получение челленджа из БД
-      console.log("validated.challengeId", validated.challengeId);
-      const challenge = await prisma.challenge.findUnique({
-        where: { id: validated.challengeId },
-      });
-      console.log("challenge", challenge);
+      console.log("🔍 Поиск челленджа с ID:", validated.challengeId);
+      
+      try {
+        const challenge = await prisma.challenge.findUnique({
+          where: { id: validated.challengeId },
+        });
+        
+        console.log("✅ Результат запроса:", challenge ? `Найден: ${challenge.title}` : "Челлендж не найден");
 
-      if (!challenge) {
-        return NextResponse.json(
-          { error: "Challenge not found" },
-          { status: 404 }
-        );
+        if (!challenge) {
+          console.warn("⚠️ Челлендж не найден, используем дефолтный промпт");
+          promptTemplate = DEFAULT_PROMPT;
+        } else if (!challenge.isActive) {
+          console.warn("⚠️ Челлендж неактивен, используем дефолтный промпт");
+          promptTemplate = DEFAULT_PROMPT;
+        } else {
+          // Получение промпта для категории
+          promptTemplate = getPromptForCategory(
+            challenge.category as "MONUMENTS" | "PETS" | "FACES" | "SEASONAL"
+          );
+          console.log("✅ Используется промпт для категории:", challenge.category);
+        }
+      } catch (dbError) {
+        console.error("❌ Ошибка при запросе к БД:", dbError);
+        // В случае ошибки БД используем дефолтный промпт
+        promptTemplate = DEFAULT_PROMPT;
+        console.log("⚠️ Используется дефолтный промпт из-за ошибки БД");
       }
-
-      if (!challenge.isActive) {
-        return NextResponse.json(
-          { error: "Challenge is not active" },
-          { status: 400 }
-        );
-      }
-
-      // Получение промпта для категории
-      promptTemplate = getPromptForCategory(
-        challenge.category as "MONUMENTS" | "PETS" | "FACES" | "SEASONAL"
-      );
     } else {
       // Использование дефолтного промпта
       promptTemplate = DEFAULT_PROMPT;
@@ -77,6 +81,11 @@ export async function POST(request: NextRequest) {
       const callbackUrl = process.env.WEBHOOK_URL
         ? `${process.env.WEBHOOK_URL}/api/generate/callback`
         : undefined;
+
+      console.log("🎬 Инициация генерации видео:");
+      console.log("📸 Image URL:", validated.imageUrl);
+      console.log("💬 Prompt:", promptTemplate.prompt);
+      console.log("🔔 Callback URL:", callbackUrl || "не указан");
 
       const grokResponse = await grokClient.generateVideo({
         imageUrl: validated.imageUrl,

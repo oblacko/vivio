@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Home, Play, Trophy, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useUpload } from "@/lib/contexts/upload-context";
 
 const navigation = [
   {
@@ -31,6 +32,7 @@ const navigation = [
 
 export function Navigation() {
   const pathname = usePathname();
+  const { openUpload } = useUpload();
 
   return (
     <nav className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -50,6 +52,28 @@ export function Navigation() {
               const Icon = item.icon;
               const isActive = pathname === item.href ||
                 (item.href !== "/" && pathname.startsWith(item.href));
+              
+              // Для кнопки "Создать видео" используем onClick вместо Link
+              if (item.name === "Создать видео") {
+                return (
+                  <Button
+                    key={item.name}
+                    variant={isActive ? "default" : "ghost"}
+                    size="sm"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      openUpload();
+                    }}
+                    className={cn(
+                      "flex items-center space-x-2",
+                      isActive && "bg-primary text-primary-foreground"
+                    )}
+                  >
+                    <Icon className="w-4 h-4" />
+                    <span>{item.name}</span>
+                  </Button>
+                );
+              }
 
               return (
                 <Link key={item.name} href={item.href}>
@@ -75,6 +99,27 @@ export function Navigation() {
               const Icon = item.icon;
               const isActive = pathname === item.href ||
                 (item.href !== "/" && pathname.startsWith(item.href));
+
+              // Для кнопки "Создать видео" используем onClick вместо Link
+              if (item.name === "Создать видео") {
+                return (
+                  <Button
+                    key={item.name}
+                    variant={isActive ? "default" : "ghost"}
+                    size="sm"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      openUpload();
+                    }}
+                    className={cn(
+                      "p-2",
+                      isActive && "bg-primary text-primary-foreground"
+                    )}
+                  >
+                    <Icon className="w-5 h-5" />
+                  </Button>
+                );
+              }
 
               return (
                 <Link key={item.name} href={item.href}>
