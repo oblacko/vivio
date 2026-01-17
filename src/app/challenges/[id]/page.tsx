@@ -64,10 +64,10 @@ export default function ChallengePage() {
   if (!challenge) {
     return (
       <div className="container mx-auto px-4 py-8 text-center">
-        <p className="text-destructive">Челлендж не найден</p>
-        <Link href="/">
+        <p className="text-destructive">Тренд не найден</p>
+        <Link href="/challenges">
           <Button variant="outline" className="mt-4">
-            Вернуться на главную
+            Вернуться к трендам
           </Button>
         </Link>
       </div>
@@ -105,9 +105,9 @@ export default function ChallengePage() {
             onUploadComplete={handleUploadComplete}
             challengeId={challengeId}
             trigger={
-              <Button size="lg">
+              <Button size="lg" className="font-semibold">
                 <Upload className="w-4 h-4 mr-2" />
-                Загрузить изображение
+                Участвовать в тренде 🔥
               </Button>
             }
           />
@@ -125,7 +125,7 @@ export default function ChallengePage() {
 
       {/* Лента готовых видео */}
       <div className="mt-12">
-        <h2 className="text-2xl font-bold mb-6">Готовые видео</h2>
+        <h2 className="text-2xl font-bold mb-6">Участники тренда</h2>
         {videosLoading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
             {[...Array(6)].map((_, i) => (

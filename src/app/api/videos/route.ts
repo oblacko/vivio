@@ -9,17 +9,30 @@ export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
     const challengeId = searchParams.get("challengeId");
+    const category = searchParams.get("category");
+    const sortBy = searchParams.get("sortBy") || "recent";
     const limit = parseInt(searchParams.get("limit") || "20");
     const offset = parseInt(searchParams.get("offset") || "0");
+
+    // Определяем сортировку
+    let orderBy: any = { createdAt: "desc" };
+    if (sortBy === "popular") {
+      orderBy = { likesCount: "desc" };
+    } else if (sortBy === "views") {
+      orderBy = { viewsCount: "desc" };
+    }
 
     const videos = await prisma.video.findMany({
       where: {
         isPublic: true,
         ...(challengeId && { challengeId }),
+        ...(category && {
+          challenge: {
+            category: category as any,
+          },
+        }),
       },
-      orderBy: {
-        createdAt: "desc",
-      },
+      orderBy,
       take: limit,
       skip: offset,
       include: {

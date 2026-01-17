@@ -3,7 +3,7 @@ export const runtime = 'nodejs';
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
 import { grokClient } from "@/lib/grok/client";
-import { uploadVideoFromUrl, generateThumbnailFromVideo } from "@/lib/storage/vercel-blob";
+import { uploadVideoFromUrl, optimizeAndUploadThumbnail } from "@/lib/storage/vercel-blob";
 
 interface RouteParams {
   params: {
@@ -85,15 +85,19 @@ export async function GET(
               const filename = `video-${job.id}-${Date.now()}.mp4`;
               const blobResult = await uploadVideoFromUrl(videoUrl, filename);
 
-              // Генерация превью из первого кадра видео
+              // Оптимизация и загрузка thumbnail из исходного изображения
               let thumbnailUrl: string | null = null;
               try {
-                console.log(`🖼️ Generating thumbnail for video...`);
-                thumbnailUrl = await generateThumbnailFromVideo(blobResult.url, job.id);
-                if (thumbnailUrl) {
-                  console.log(`✅ Thumbnail generated: ${thumbnailUrl}`);
+                if (job.imageUrl) {
+                  console.log(`🖼️ Optimizing thumbnail from original image: ${job.imageUrl}`);
+                  thumbnailUrl = await optimizeAndUploadThumbnail(job.imageUrl, job.id);
+                  if (thumbnailUrl) {
+                    console.log(`✅ Thumbnail optimized and uploaded: ${thumbnailUrl}`);
+                  } else {
+                    console.warn(`⚠️ Thumbnail optimization failed, continuing without thumbnail`);
+                  }
                 } else {
-                  console.warn(`⚠️ Thumbnail generation failed, continuing without thumbnail`);
+                  console.warn(`⚠️ No original image URL found, skipping thumbnail generation`);
                 }
               } catch (thumbnailError) {
                 console.error("❌ Thumbnail generation error:", thumbnailError);
@@ -197,14 +201,15 @@ export async function GET(
 
       // Маппинг состояний API в статусы приложения
       let appStatus: string;
-      if (grokStatus.data.state === "success") {
+      const state = grokStatus.data.state as "waiting" | "queuing" | "generating" | "success" | "fail" | "pending" | "processing";
+      if (state === "success") {
         appStatus = "COMPLETED";
-      } else if (grokStatus.data.state === "fail") {
+      } else if (state === "fail") {
         appStatus = "FAILED";
-      } else if (grokStatus.data.state === "generating" || grokStatus.data.state === "processing") {
+      } else if (state === "generating" || state === "processing") {
         appStatus = "PROCESSING";
       } else {
-        // waiting, queuing, pending
+        // waiting, queuing, pending - все остальные состояния
         appStatus = "QUEUED";
       }
 

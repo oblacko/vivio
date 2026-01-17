@@ -10,6 +10,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Heart, Share2, Eye, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { useVideoStore } from "@/store/useVideoStore";
+import { useAuth } from "@/lib/hooks/useAuth";
+import { ShareDialog } from "@/components/share/ShareDialog";
 
 export default function VideoPage() {
   const params = useParams();
@@ -18,30 +20,25 @@ export default function VideoPage() {
   const { data: video, isLoading } = useVideo(videoId);
   const { likedVideos, toggleLike } = useVideoStore();
   const likeMutation = useLikeVideo();
+  const { isAuthenticated, user } = useAuth();
 
   const isLiked = likedVideos.has(videoId);
 
   const handleLike = () => {
+    if (!isAuthenticated) {
+      alert('Необходимо авторизоваться для лайка видео');
+      return;
+    }
+
+    if (isLiked) {
+      alert('Вы уже лайкнули это видео');
+      return;
+    }
+
     toggleLike(videoId);
     likeMutation.mutate(videoId);
   };
 
-  const handleShare = async () => {
-    if (navigator.share && video) {
-      try {
-        await navigator.share({
-          title: video.challenge?.title || "Vivio Video",
-          text: "Посмотрите это видео!",
-          url: window.location.href,
-        });
-      } catch (error) {
-        // Пользователь отменил шаринг
-      }
-    } else {
-      // Fallback: копирование в буфер обмена
-      navigator.clipboard.writeText(window.location.href);
-    }
-  };
 
   if (isLoading) {
     return (
@@ -70,7 +67,7 @@ export default function VideoPage() {
       <Link href={`/challenges/${video.challengeId}`}>
         <Button variant="ghost" className="mb-4">
           <ArrowLeft className="w-4 h-4 mr-2" />
-          Назад к челленджу
+          Назад к тренду
         </Button>
       </Link>
 
@@ -134,6 +131,7 @@ export default function VideoPage() {
             <Button
               variant={isLiked ? "default" : "outline"}
               onClick={handleLike}
+              disabled={!isAuthenticated || isLiked}
               className="flex-1"
             >
               <Heart
@@ -141,13 +139,22 @@ export default function VideoPage() {
                   isLiked ? "fill-current" : ""
                 }`}
               />
-              {isLiked ? "Лайкнуто" : "Лайкнуть"}
+              {!isAuthenticated
+                ? "Войдите для лайка"
+                : isLiked
+                ? "Лайкнуто"
+                : "Лайкнуть"}
             </Button>
 
-            <Button variant="outline" onClick={handleShare} className="flex-1">
-              <Share2 className="w-4 h-4 mr-2" />
-              Поделиться
-            </Button>
+            <ShareDialog
+              url={typeof window !== 'undefined' ? window.location.href : ''}
+              title={video?.challenge?.title || "Vivio Video"}
+            >
+              <Button variant="outline" className="flex-1">
+                <Share2 className="w-4 h-4 mr-2" />
+                Поделиться
+              </Button>
+            </ShareDialog>
           </div>
 
           {/* Метаданные */}

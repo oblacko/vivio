@@ -169,7 +169,7 @@ export async function generateThumbnailFromVideo(
     const thumbnailData = await ffmpeg.readFile("thumbnail.jpg");
     
     // Конвертация в File для загрузки
-    const thumbnailBlob = new Blob([thumbnailData], { type: "image/jpeg" });
+    const thumbnailBlob = new Blob([Buffer.from(thumbnailData)], { type: "image/jpeg" });
     const thumbnailFile = new File([thumbnailBlob], `thumbnail-${videoId}.jpg`, {
       type: "image/jpeg",
     });
@@ -193,6 +193,75 @@ export async function generateThumbnailFromVideo(
     console.error("❌ Failed to generate thumbnail:", error);
     // Возвращаем null вместо ошибки, чтобы не блокировать создание видео
     // Превью можно будет сгенерировать позже или на клиенте
+    return null;
+  }
+}
+
+/**
+ * Оптимизация и загрузка thumbnail из исходного изображения
+ * Использует sharp для сжатия изображения до минимального веса с оптимальным качеством
+ */
+export async function optimizeAndUploadThumbnail(
+  imageUrl: string,
+  videoId: string
+): Promise<string | null> {
+  if (!BLOB_READ_WRITE_TOKEN) {
+    console.warn("BLOB_READ_WRITE_TOKEN is not configured, skipping thumbnail optimization");
+    return null;
+  }
+
+  try {
+    // Динамический импорт sharp
+    const sharp = (await import("sharp")).default;
+
+    // Скачивание исходного изображения
+    console.log(`📥 Downloading original image for thumbnail: ${imageUrl}`);
+    const response = await fetch(imageUrl);
+    if (!response.ok) {
+      throw new Error(`Failed to download image: ${response.statusText}`);
+    }
+
+    const imageBuffer = Buffer.from(await response.arrayBuffer());
+
+    // Получение метаданных изображения для определения формата
+    const metadata = await sharp(imageBuffer).metadata();
+    console.log(`📊 Original image: ${metadata.width}x${metadata.height}, format: ${metadata.format}, size: ${imageBuffer.length} bytes`);
+
+    // Оптимизация изображения с использованием WebP для лучшего сжатия
+    // WebP обеспечивает на 25-35% меньший размер по сравнению с JPEG при том же качестве
+    const optimizedBuffer = await sharp(imageBuffer)
+      .resize(1080, null, {
+        fit: "inside",
+        withoutEnlargement: true, // Не увеличивать если изображение меньше
+      })
+      .webp({
+        quality: 80, // Оптимальный баланс между качеством и размером
+        effort: 6,   // Максимальное сжатие (0-6, где 6 = лучшее сжатие)
+      })
+      .toBuffer();
+
+    console.log(`✅ Image optimized: ${optimizedBuffer.length} bytes (${Math.round((1 - optimizedBuffer.length / imageBuffer.length) * 100)}% reduction)`);
+
+    // Создание File для загрузки
+    const thumbnailBlob = new Blob([optimizedBuffer as any], { type: "image/webp" });
+    const thumbnailFile = new File([thumbnailBlob], `thumbnail-${videoId}.webp`, {
+      type: "image/webp",
+    });
+
+    // Загрузка в Vercel Blob Storage
+    const thumbnailFilename = `thumbnails/${videoId}-${Date.now()}.webp`;
+    const uploadedBlob = await put(thumbnailFilename, thumbnailFile, {
+      access: "public",
+      token: BLOB_READ_WRITE_TOKEN,
+      contentType: "image/webp",
+    });
+
+    console.log(`✅ Thumbnail optimized and uploaded: ${uploadedBlob.url}`);
+
+    return uploadedBlob.url;
+  } catch (error) {
+    console.error("❌ Failed to optimize thumbnail:", error);
+    // Возвращаем null вместо ошибки, чтобы не блокировать создание видео
     return null;
   }
 }

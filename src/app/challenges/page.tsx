@@ -31,7 +31,7 @@ function ChallengesList() {
   if (challengesList.length === 0) {
     return (
       <div className="text-center py-12">
-        <p className="text-muted-foreground">Челленджи загружаются...</p>
+        <p className="text-muted-foreground">Тренды загружаются...</p>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6 mt-4">
           {[...Array(4)].map((_, i) => (
             <Skeleton key={i} className="aspect-[9/16] w-full rounded-lg" />
@@ -62,9 +62,11 @@ export default function ChallengesPage() {
   return (
     <main className="container mx-auto px-4 py-8">
       <div className="mb-8">
-        <h1 className="text-4xl font-bold mb-2">Челленджи</h1>
-        <p className="text-muted-foreground">
-          Выберите челлендж и создайте свое уникальное видео с помощью AI
+        <h1 className="text-4xl font-bold mb-2 flex items-center gap-3">
+          🔥 Тренды
+        </h1>
+        <p className="text-muted-foreground text-lg">
+          Загрузи фото, выбери тренд — стань частью флешмоба! Просто, быстро, круто 🚀
         </p>
       </div>
 

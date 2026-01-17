@@ -1,18 +1,21 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { ImageToVideoUploader } from "@/components/upload/ImageToVideoUploader";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useChallenges } from "@/lib/queries/challenges";
-import { ArrowLeft, Sparkles } from "lucide-react";
+import { useAuth } from "@/lib/hooks/useAuth";
+import { ArrowLeft, Sparkles, Lock, LogIn } from "lucide-react";
 import Link from "next/link";
 
 export default function CreatePage() {
   const [selectedChallengeId, setSelectedChallengeId] = useState<string | null>(null);
   const router = useRouter();
   const { data: challenges, isLoading, error } = useChallenges();
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
 
   const handleComplete = (videoUrl: string, videoId: string) => {
     // Опционально: перенаправить на страницу видео
@@ -24,11 +27,63 @@ export default function CreatePage() {
 
   if (error) {
     console.error("CreatePage error:", error);
-    // Продолжаем с пустым массивом челленджей
+    // Продолжаем с пустым массивом трендов
   }
 
   // Используем challenges или пустой массив
   const challengesList = challenges || [];
+
+  // Проверка авторизации
+  if (authLoading) {
+    return (
+      <main className="container mx-auto px-4 py-8 flex items-center justify-center min-h-[60vh]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Загрузка...</p>
+        </div>
+      </main>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <main className="container mx-auto px-4 py-8">
+        <Link href="/">
+          <Button variant="ghost" className="mb-4">
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Назад
+          </Button>
+        </Link>
+
+        <div className="max-w-md mx-auto mt-12">
+          <Card>
+            <CardHeader className="text-center">
+              <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Lock className="w-8 h-8 text-primary" />
+              </div>
+              <CardTitle>Требуется авторизация</CardTitle>
+              <CardDescription>
+                Для создания видео необходимо войти в систему
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <Link href={`/login?callbackUrl=${encodeURIComponent("/create")}`}>
+                <Button className="w-full" size="lg">
+                  <LogIn className="w-4 h-4 mr-2" />
+                  Войти
+                </Button>
+              </Link>
+              <Link href={`/signup?callbackUrl=${encodeURIComponent("/create")}`}>
+                <Button variant="outline" className="w-full" size="lg">
+                  Создать аккаунт
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="container mx-auto px-4 py-8">
@@ -50,20 +105,20 @@ export default function CreatePage() {
         <div className="space-y-6">
           <div>
             <label className="text-sm font-medium mb-2 block">
-              Челлендж (опционально)
+              Тренд (опционально)
             </label>
             <Select
               value={selectedChallengeId || "none"}
               onValueChange={(value) => setSelectedChallengeId(value === "none" ? null : value)}
             >
               <SelectTrigger className="w-full max-w-md">
-                <SelectValue placeholder="Выберите челлендж или оставьте пустым" />
+                <SelectValue placeholder="Выберите тренд или оставьте пустым" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="none">Без челленджа</SelectItem>
+                <SelectItem value="none">Без тренда</SelectItem>
                 {isLoading ? (
                   <SelectItem value="loading" disabled>
-                    Загрузка челленджей...
+                    Загрузка трендов...
                   </SelectItem>
                 ) : (
                   challengesList.map((challenge) => (

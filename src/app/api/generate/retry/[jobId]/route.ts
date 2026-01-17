@@ -3,7 +3,7 @@ export const runtime = 'nodejs';
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
 import { grokClient } from "@/lib/grok/client";
-import { uploadVideoFromUrl, generateThumbnailFromVideo } from "@/lib/storage/vercel-blob";
+import { uploadVideoFromUrl, optimizeAndUploadThumbnail } from "@/lib/storage/vercel-blob";
 
 interface RouteParams {
   params: {
@@ -92,15 +92,19 @@ export async function POST(
     const blobResult = await uploadVideoFromUrl(videoUrl, filename);
     console.log(`✅ Video uploaded to Vercel Blob: ${blobResult.url}`);
 
-    // Генерация превью из первого кадра видео
+    // Оптимизация и загрузка thumbnail из исходного изображения
     let thumbnailUrl: string | null = null;
     try {
-      console.log(`🖼️ Generating thumbnail for video...`);
-      thumbnailUrl = await generateThumbnailFromVideo(blobResult.url, job.id);
-      if (thumbnailUrl) {
-        console.log(`✅ Thumbnail generated: ${thumbnailUrl}`);
+      if (job.imageUrl) {
+        console.log(`🖼️ Optimizing thumbnail from original image: ${job.imageUrl}`);
+        thumbnailUrl = await optimizeAndUploadThumbnail(job.imageUrl, job.id);
+        if (thumbnailUrl) {
+          console.log(`✅ Thumbnail optimized and uploaded: ${thumbnailUrl}`);
+        } else {
+          console.warn(`⚠️ Thumbnail optimization failed, continuing without thumbnail`);
+        }
       } else {
-        console.warn(`⚠️ Thumbnail generation failed, continuing without thumbnail`);
+        console.warn(`⚠️ No original image URL found, skipping thumbnail generation`);
       }
     } catch (thumbnailError) {
       console.error("❌ Thumbnail generation error:", thumbnailError);

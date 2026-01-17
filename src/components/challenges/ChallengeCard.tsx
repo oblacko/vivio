@@ -129,7 +129,7 @@ export function ChallengeCard({
             </div>
 
             <div className="flex items-center justify-between pt-2">
-              <Badge variant="outline">{category}</Badge>
+              {category && <Badge variant="outline">{category}</Badge>}
 
               <div className="flex items-center gap-2">
                 <Button

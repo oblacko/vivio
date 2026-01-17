@@ -6,6 +6,7 @@ export interface Challenge {
   description: string | null;
   category: string;
   thumbnailUrl: string | null;
+  promptTemplate: string;
   participantCount: number;
   isActive: boolean;
 }

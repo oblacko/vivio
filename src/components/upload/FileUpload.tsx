@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import NextImage from "next/image";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Card } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   X,
   Upload,
@@ -21,10 +22,11 @@ import Cropper from "react-easy-crop";
 import { toast } from "sonner";
 import { useUploadImage } from "@/lib/queries/upload";
 import { useInitiateGeneration, useGenerationStatus } from "@/lib/queries/generation";
-import { useEffect } from "react";
+import { useChallenges } from "@/lib/queries/challenges";
 
 interface FileUploadProps {
   onClose?: () => void;
+  defaultChallengeId?: string | null;
 }
 
 type AspectRatio = {
@@ -40,7 +42,7 @@ const ASPECT_RATIOS: AspectRatio[] = [
   { label: "Свободное", value: 0 },
 ];
 
-export function FileUpload({ onClose }: FileUploadProps) {
+export function FileUpload({ onClose, defaultChallengeId }: FileUploadProps) {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [isDragging, setIsDragging] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
@@ -61,10 +63,14 @@ export function FileUpload({ onClose }: FileUploadProps) {
   const [jobId, setJobId] = useState<string | null>(null);
   const [generationError, setGenerationError] = useState<string | null>(null);
 
+  // Challenge state
+  const [selectedChallengeId, setSelectedChallengeId] = useState<string | null>(null);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const uploadMutation = useUploadImage();
   const initiateMutation = useInitiateGeneration();
   const { data: generationStatus } = useGenerationStatus(jobId);
+  const { data: challenges = [] } = useChallenges();
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -130,6 +136,7 @@ export function FileUpload({ onClose }: FileUploadProps) {
     setUploadError(null);
     setJobId(null);
     setGenerationError(null);
+    setSelectedChallengeId(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -153,6 +160,16 @@ export function FileUpload({ onClose }: FileUploadProps) {
     }
   }, [generationStatus]);
 
+  // Установка дефолтного челленджа при монтировании компонента
+  useEffect(() => {
+    if (defaultChallengeId && challenges.length > 0) {
+      const challengeExists = challenges.some(c => c.id === defaultChallengeId);
+      if (challengeExists) {
+        setSelectedChallengeId(defaultChallengeId);
+      }
+    }
+  }, [defaultChallengeId, challenges]);
+
   // Запуск генерации
   const handleStartGeneration = async () => {
     if (!uploadedImageUrl) return;
@@ -161,8 +178,9 @@ export function FileUpload({ onClose }: FileUploadProps) {
       setGenerationError(null);
       const result = await initiateMutation.mutateAsync({
         imageUrl: uploadedImageUrl,
+        challengeId: selectedChallengeId || undefined,
       });
-      
+
       setJobId(result.jobId);
       toast.info("Генерация началась", {
         description: "Обработка займет около 30 секунд",
@@ -492,12 +510,43 @@ export function FileUpload({ onClose }: FileUploadProps) {
             )}
 
             {uploadMutation.isSuccess && uploadedImageUrl && !jobId && (
-              <div className="p-4 bg-green-50 rounded-lg border border-green-200">
-                <div className="flex items-center gap-2 text-green-700">
-                  <Check className="size-5" />
-                  <p className="font-medium">
-                    Изображение успешно загружено!
-                  </p>
+              <div className="space-y-4">
+                <div className="p-4 bg-green-50 rounded-lg border border-green-200">
+                  <div className="flex items-center gap-2 text-green-700">
+                    <Check className="size-5" />
+                    <p className="font-medium">
+                      Изображение успешно загружено!
+                    </p>
+                  </div>
+                </div>
+
+                {/* Выбор челленджа */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium flex items-center gap-2">
+                    <Sparkles className="size-4" />
+                    Выберите челлендж (опционально)
+                  </label>
+                  <Select 
+                    value={selectedChallengeId || "none"} 
+                    onValueChange={(value) => setSelectedChallengeId(value === "none" ? null : value)}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Без челленджа" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Без челленджа</SelectItem>
+                      {challenges.map((challenge) => (
+                        <SelectItem key={challenge.id} value={challenge.id}>
+                          {challenge.title} ({challenge.participantCount} участников)
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {selectedChallengeId && (
+                    <p className="text-xs text-gray-500">
+                      {challenges.find(c => c.id === selectedChallengeId)?.description}
+                    </p>
+                  )}
                 </div>
               </div>
             )}

@@ -7,6 +7,7 @@ export interface Challenge {
   description: string | null;
   category: string;
   thumbnailUrl: string | null;
+  promptTemplate: string;
   participantCount: number;
   isActive: boolean;
   createdAt: string;
@@ -21,6 +22,7 @@ const mockChallenges: Challenge[] = [
     description: "Создайте забавное видео с вашим питомцем в главной роли!",
     category: "PETS",
     thumbnailUrl: "https://images.unsplash.com/photo-1544568100-847a948585b9?w=400&h=711&fit=crop",
+    promptTemplate: "Transform this image of a pet into a magical animated scene where the pet becomes the star of an adventure. Make it fun and whimsical with dynamic movements.",
     participantCount: 42,
     isActive: true,
     createdAt: new Date().toISOString(),
@@ -32,6 +34,7 @@ const mockChallenges: Challenge[] = [
     description: "Оживите исторические памятники в вашем городе!",
     category: "MONUMENTS",
     thumbnailUrl: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=711&fit=crop",
+    promptTemplate: "Transform this monument into a living, breathing scene where the statue comes to life. Add dynamic movements, lighting effects, and historical context.",
     participantCount: 28,
     isActive: true,
     createdAt: new Date().toISOString(),
@@ -43,6 +46,7 @@ const mockChallenges: Challenge[] = [
     description: "Преобразите портреты в динамичные истории!",
     category: "FACES",
     thumbnailUrl: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400&h=711&fit=crop",
+    promptTemplate: "Transform this portrait into a dynamic scene where the person comes to life with expressive movements, emotions, and storytelling elements.",
     participantCount: 35,
     isActive: true,
     createdAt: new Date().toISOString(),
@@ -54,6 +58,7 @@ const mockChallenges: Challenge[] = [
     description: "Празднуйте времена года с волшебством!",
     category: "SEASONAL",
     thumbnailUrl: "https://images.unsplash.com/photo-1512389142860-9c449e58a543?w=400&h=711&fit=crop",
+    promptTemplate: "Transform this scene into a magical seasonal wonderland with dynamic weather effects, festive elements, and celebratory atmosphere.",
     participantCount: 19,
     isActive: true,
     createdAt: new Date().toISOString(),

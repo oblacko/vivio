@@ -3,7 +3,7 @@ export const runtime = 'nodejs';
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
 import { grokClient } from "@/lib/grok/client";
-import { uploadVideoFromUrl, generateThumbnailFromVideo } from "@/lib/storage/vercel-blob";
+import { uploadVideoFromUrl, optimizeAndUploadThumbnail } from "@/lib/storage/vercel-blob";
 
 export async function POST(request: NextRequest) {
   try {
@@ -111,15 +111,38 @@ export async function POST(request: NextRequest) {
               });
               
               if (!existingVideo) {
-                // Генерация превью из первого кадра видео
+                // Оптимизация и загрузка thumbnail из исходного изображения
                 let thumbnailUrl: string | null = null;
                 try {
-                  console.log(`🖼️ Generating thumbnail for video...`);
-                  thumbnailUrl = await generateThumbnailFromVideo(blobResult.url, job.id);
-                  if (thumbnailUrl) {
-                    console.log(`✅ Thumbnail generated: ${thumbnailUrl}`);
+                  // Извлекаем URL исходного изображения из параметров вебхука
+                  let originalImageUrl: string | null = null;
+                  
+                  if (param) {
+                    try {
+                      const paramData = JSON.parse(param);
+                      if (paramData.input?.image_urls?.[0]) {
+                        originalImageUrl = paramData.input.image_urls[0];
+                      }
+                    } catch (parseError) {
+                      console.warn("⚠️ Failed to parse param for image URL:", parseError);
+                    }
+                  }
+                  
+                  // Если не нашли URL в param, используем job.imageUrl
+                  if (!originalImageUrl && job.imageUrl) {
+                    originalImageUrl = job.imageUrl;
+                  }
+                  
+                  if (originalImageUrl) {
+                    console.log(`🖼️ Optimizing thumbnail from original image: ${originalImageUrl}`);
+                    thumbnailUrl = await optimizeAndUploadThumbnail(originalImageUrl, job.id);
+                    if (thumbnailUrl) {
+                      console.log(`✅ Thumbnail optimized and uploaded: ${thumbnailUrl}`);
+                    } else {
+                      console.warn(`⚠️ Thumbnail optimization failed, continuing without thumbnail`);
+                    }
                   } else {
-                    console.warn(`⚠️ Thumbnail generation failed, continuing without thumbnail`);
+                    console.warn(`⚠️ No original image URL found, skipping thumbnail generation`);
                   }
                 } catch (thumbnailError) {
                   console.error("❌ Thumbnail generation error:", thumbnailError);

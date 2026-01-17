@@ -82,9 +82,10 @@ export function VideoPlayer({
   return (
     <div
       className={cn(
-        "relative group overflow-hidden rounded-lg bg-black",
+        "relative group overflow-hidden bg-black",
         aspectRatio === "vertical" && "aspect-[9/16]",
         aspectRatio === "square" && "aspect-square",
+        !className?.includes("rounded-") && "rounded-lg",
         className
       )}
       onMouseEnter={() => setShowControlsOverlay(true)}

@@ -96,7 +96,7 @@ export function VideoCard({
   const cardContent = (
     <div
       className={cn(
-        "relative overflow-hidden rounded-lg bg-black group cursor-pointer",
+        "relative overflow-hidden rounded-lg bg-black group cursor-pointer hover-lift transition-all",
         aspectRatio === "vertical" && "aspect-[9/16]",
         aspectRatio === "square" && "aspect-square",
         className
