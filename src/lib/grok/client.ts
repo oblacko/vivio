@@ -26,7 +26,7 @@ export interface JobStatusResponse {
   message: string;
   data: {
     taskId: string;
-    state: "pending" | "processing" | "success" | "fail";
+    state: "waiting" | "queuing" | "generating" | "success" | "fail" | "pending" | "processing";
     progress?: number;
     resultJson?: string; // JSON string with resultUrls array
     failCode?: string | null;
@@ -158,7 +158,7 @@ class GrokClient {
    */
   async getJobStatus(taskId: string): Promise<JobStatusResponse> {
     const response = await this.request<JobStatusResponse>(
-      `/jobs/getTaskStatus?taskId=${taskId}`,
+      `/jobs/recordInfo?taskId=${taskId}`,
       {
         method: "GET",
       }

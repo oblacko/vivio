@@ -8,7 +8,7 @@ import { useInitiateGeneration } from "@/lib/queries/generation";
 import { useUploadImage } from "@/lib/queries/upload";
 import { UploadSheet } from "@/components/upload/UploadSheet";
 import { GenerationProgress } from "@/components/generation/GenerationProgress";
-import { VideoPlayer } from "@/components/video/VideoPlayer";
+import { VideoCard } from "@/components/video/VideoCard";
 import { ChallengeCard } from "@/components/challenges/ChallengeCard";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -135,15 +135,15 @@ export default function ChallengePage() {
         ) : videos && videos.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
             {videos.map((video) => (
-              <div key={video.id} className="cursor-pointer">
-                <Link href={`/videos/${video.id}`}>
-                  <VideoPlayer
-                    src={video.videoUrl}
-                    aspectRatio="vertical"
-                    showControls={false}
-                  />
-                </Link>
-              </div>
+              <VideoCard
+                key={video.id}
+                id={video.id}
+                videoUrl={video.videoUrl}
+                thumbnailUrl={video.thumbnailUrl}
+                aspectRatio="vertical"
+                href={`/videos/${video.id}`}
+                autoPlayOnHover={true}
+              />
             ))}
           </div>
         ) : (

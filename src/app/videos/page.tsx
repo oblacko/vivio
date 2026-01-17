@@ -1,6 +1,6 @@
 "use client";
 
-import { VideoPlayer } from "@/components/video/VideoPlayer";
+import { VideoCard } from "@/components/video/VideoCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { useVideos } from "@/lib/queries/videos";
@@ -38,43 +38,40 @@ function VideosList() {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
       {videos.map((video) => (
-        <Link key={video.id} href={`/videos/${video.id}`}>
-          <div className="group cursor-pointer">
-            <div className="relative overflow-hidden rounded-lg bg-muted">
-              <VideoPlayer
-                src={video.videoUrl}
-                aspectRatio="vertical"
-                showControls={false}
-                className="w-full transition-transform group-hover:scale-105"
-              />
-              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
-            </div>
+        <div key={video.id} className="group">
+          <VideoCard
+            id={video.id}
+            videoUrl={video.videoUrl}
+            thumbnailUrl={video.thumbnailUrl}
+            aspectRatio="vertical"
+            href={`/videos/${video.id}`}
+            autoPlayOnHover={true}
+          />
 
-            <div className="mt-3 space-y-2">
-              <div className="flex items-center justify-between">
-                <Badge variant="outline" className="text-xs">
-                  {video.challenge?.category}
-                </Badge>
-                <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                  <span>👁 {video.viewsCount}</span>
-                  <span>❤️ {video.likesCount}</span>
-                </div>
+          <div className="mt-3 space-y-2">
+            <div className="flex items-center justify-between">
+              <Badge variant="outline" className="text-xs">
+                {video.challenge?.category}
+              </Badge>
+              <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                <span>👁 {video.viewsCount}</span>
+                <span>❤️ {video.likesCount}</span>
               </div>
-
-              {video.challenge?.title && (
-                <h3 className="font-medium line-clamp-2 text-sm">
-                  {video.challenge.title}
-                </h3>
-              )}
-
-              {video.user?.name && (
-                <p className="text-xs text-muted-foreground">
-                  {video.user.name}
-                </p>
-              )}
             </div>
+
+            {video.challenge?.title && (
+              <h3 className="font-medium line-clamp-2 text-sm">
+                {video.challenge.title}
+              </h3>
+            )}
+
+            {video.user?.name && (
+              <p className="text-xs text-muted-foreground">
+                {video.user.name}
+              </p>
+            )}
           </div>
-        </Link>
+        </div>
       ))}
     </div>
   );

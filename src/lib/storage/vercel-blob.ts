@@ -124,13 +124,86 @@ export async function fileExists(url: string): Promise<boolean> {
 }
 
 /**
- * Генерация thumbnail из видео (заглушка для MVP)
- * В будущем можно использовать ffmpeg или другой инструмент
+ * Генерация thumbnail из первого кадра видео
+ * Использует @ffmpeg/ffmpeg для извлечения первого кадра
+ */
+export async function generateThumbnailFromVideo(
+  videoUrl: string,
+  videoId: string
+): Promise<string | null> {
+  if (!BLOB_READ_WRITE_TOKEN) {
+    console.warn("BLOB_READ_WRITE_TOKEN is not configured, skipping thumbnail generation");
+    return null;
+  }
+
+  try {
+    // Динамический импорт для уменьшения размера bundle
+    const { FFmpeg } = await import("@ffmpeg/ffmpeg");
+    const { fetchFile, toBlobURL } = await import("@ffmpeg/util");
+
+    const ffmpeg = new FFmpeg();
+    
+    // Загрузка WASM файлов ffmpeg
+    const baseURL = "https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd";
+    await ffmpeg.load({
+      coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, "text/javascript"),
+      wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, "application/wasm"),
+    });
+
+    // Скачивание видео
+    console.log(`📥 Downloading video for thumbnail: ${videoUrl}`);
+    const videoData = await fetchFile(videoUrl);
+    await ffmpeg.writeFile("input.mp4", videoData);
+
+    // Извлечение первого кадра (0 секунда)
+    console.log(`🎬 Extracting first frame...`);
+    await ffmpeg.exec([
+      "-i", "input.mp4",
+      "-ss", "00:00:00",
+      "-vframes", "1",
+      "-vf", "scale=1080:-1", // Масштабирование до максимум 1080px по ширине
+      "thumbnail.jpg"
+    ]);
+
+    // Чтение сгенерированного изображения
+    const thumbnailData = await ffmpeg.readFile("thumbnail.jpg");
+    
+    // Конвертация в File для загрузки
+    const thumbnailBlob = new Blob([thumbnailData], { type: "image/jpeg" });
+    const thumbnailFile = new File([thumbnailBlob], `thumbnail-${videoId}.jpg`, {
+      type: "image/jpeg",
+    });
+
+    // Загрузка в Vercel Blob Storage
+    const thumbnailFilename = `thumbnails/${videoId}-${Date.now()}.jpg`;
+    const uploadedBlob = await put(thumbnailFilename, thumbnailFile, {
+      access: "public",
+      token: BLOB_READ_WRITE_TOKEN,
+      contentType: "image/jpeg",
+    });
+
+    console.log(`✅ Thumbnail generated and uploaded: ${uploadedBlob.url}`);
+
+    // Очистка временных файлов
+    await ffmpeg.deleteFile("input.mp4");
+    await ffmpeg.deleteFile("thumbnail.jpg");
+
+    return uploadedBlob.url;
+  } catch (error) {
+    console.error("❌ Failed to generate thumbnail:", error);
+    // Возвращаем null вместо ошибки, чтобы не блокировать создание видео
+    // Превью можно будет сгенерировать позже или на клиенте
+    return null;
+  }
+}
+
+/**
+ * Генерация thumbnail из видео (legacy функция для обратной совместимости)
  */
 export async function generateThumbnail(
   videoUrl: string
 ): Promise<string | null> {
-  // TODO: Реализовать генерацию thumbnail из первого кадра видео
-  // Для MVP возвращаем null, thumbnail будет генерироваться на клиенте
+  // Используем новую функцию, но нужен videoId
+  // Для обратной совместимости возвращаем null
   return null;
 }

@@ -3,7 +3,7 @@ export const runtime = 'nodejs';
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
 import { grokClient } from "@/lib/grok/client";
-import { uploadVideoFromUrl } from "@/lib/storage/vercel-blob";
+import { uploadVideoFromUrl, generateThumbnailFromVideo } from "@/lib/storage/vercel-blob";
 
 export async function POST(request: NextRequest) {
   try {
@@ -111,11 +111,27 @@ export async function POST(request: NextRequest) {
               });
               
               if (!existingVideo) {
+                // Генерация превью из первого кадра видео
+                let thumbnailUrl: string | null = null;
+                try {
+                  console.log(`🖼️ Generating thumbnail for video...`);
+                  thumbnailUrl = await generateThumbnailFromVideo(blobResult.url, job.id);
+                  if (thumbnailUrl) {
+                    console.log(`✅ Thumbnail generated: ${thumbnailUrl}`);
+                  } else {
+                    console.warn(`⚠️ Thumbnail generation failed, continuing without thumbnail`);
+                  }
+                } catch (thumbnailError) {
+                  console.error("❌ Thumbnail generation error:", thumbnailError);
+                  // Продолжаем создание видео даже если превью не удалось сгенерировать
+                }
+
                 // Создание Video записи в БД
                 const videoData: any = {
                   jobId: job.id,
                   userId: job.userId || null,
                   videoUrl: blobResult.url,
+                  thumbnailUrl: thumbnailUrl,
                   duration: 6,
                   quality: "HD",
                 };
