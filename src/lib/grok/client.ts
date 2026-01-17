@@ -70,9 +70,25 @@ class GrokClient {
 
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error(
-        `Grok API error (${response.status}): ${errorText || response.statusText}`
-      );
+      let errorMessage = `HTTP ${response.status}`;
+
+      try {
+        const errorData = JSON.parse(errorText);
+        if (errorData.message) {
+          errorMessage = errorData.message;
+        } else if (errorData.error) {
+          errorMessage = errorData.error;
+        }
+      } catch {
+        // If not JSON, use the raw text
+        if (errorText) {
+          errorMessage = errorText;
+        } else {
+          errorMessage = response.statusText || 'Unknown error';
+        }
+      }
+
+      throw new Error(`Grok API error: ${errorMessage}`);
     }
 
     const data = await response.json();
@@ -108,7 +124,7 @@ class GrokClient {
     });
 
     if (response.code !== 200) {
-      throw new Error(`Grok API error: ${response.message}`);
+      throw new Error(`Grok API error: ${response.message || `API returned code ${response.code}`}`);
     }
 
     return {
