@@ -8,8 +8,9 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     console.log("🔄 Webhook received from Grok API:", JSON.stringify(body, null, 2));
 
-    // Извлекаем данные из webhook
-    const { taskId, state, progress, resultJson, failCode, failMsg, createTime, completeTime, costTime } = body;
+    // Извлекаем данные из webhook (Grok API возвращает данные во вложенном объекте data)
+    const webhookData = body.data || body;
+    const { taskId, state, progress, resultJson, failCode, failMsg, createTime, completeTime, param } = webhookData;
 
     if (!taskId) {
       console.error("❌ Webhook error: Missing taskId");
@@ -17,18 +18,63 @@ export async function POST(request: NextRequest) {
     }
 
     // Находим job по externalJobId
-    const job = await prisma.generationJob.findFirst({
+    let job = await prisma.generationJob.findFirst({
       where: {
         externalJobId: taskId,
       },
     });
 
-    if (!job) {
-      console.error(`❌ Webhook error: Job not found for taskId ${taskId}`);
-      return NextResponse.json({ error: "Job not found" }, { status: 404 });
+    // Если job не найден по externalJobId, попробуем найти по другим критериям
+    if (!job && param) {
+      try {
+        const paramData = JSON.parse(param);
+        if (paramData.input && paramData.input.image_urls && paramData.input.image_urls.length > 0) {
+          const imageUrl = paramData.input.image_urls[0];
+
+          // Ищем job по imageUrl и времени создания (в пределах последних 5 минут)
+          const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+          const recentJobs = await prisma.generationJob.findMany({
+            where: {
+              imageUrl: imageUrl,
+              createdAt: {
+                gte: fiveMinutesAgo,
+              },
+              externalJobId: null, // Только те, у которых externalJobId еще не установлен
+            },
+            orderBy: {
+              createdAt: 'desc',
+            },
+            take: 1,
+          });
+
+          if (recentJobs.length > 0) {
+            job = recentJobs[0];
+            console.log(`🔍 Found job by imageUrl fallback: ${job.id}`);
+
+            // Обновляем externalJobId для найденного job
+            await prisma.generationJob.update({
+              where: { id: job.id },
+              data: { externalJobId: taskId },
+            });
+            console.log(`✅ Updated externalJobId for job ${job.id}`);
+          }
+        }
+      } catch (parseError) {
+        console.warn("⚠️ Failed to parse param data for fallback search:", parseError);
+      }
     }
 
-    console.log(`📊 Job found: ${job.id}, current status: ${job.status}`);
+    if (!job) {
+      console.error(`❌ Webhook error: Job not found for taskId ${taskId}`);
+      console.error("💡 This might indicate a race condition or database sync issue");
+      return NextResponse.json({
+        error: "Job not found",
+        taskId: taskId,
+        suggestion: "Job may have been created but externalJobId not yet synced"
+      }, { status: 404 });
+    }
+
+    console.log(`📊 Job found: ${job.id}, current status: ${job.status}, externalJobId: ${job.externalJobId}`);
 
     // Обновляем статус в зависимости от состояния
     let updateData: any = {
@@ -68,7 +114,7 @@ export async function POST(request: NextRequest) {
     // Добавляем дополнительные данные если они есть
     if (createTime) updateData.createdAt = new Date(createTime);
     if (completeTime) updateData.completedAt = new Date(completeTime);
-    if (costTime) updateData.costTime = costTime;
+    // costTime не сохраняется в БД, только логируется
 
     // Обновляем job в базе данных
     await prisma.generationJob.update({

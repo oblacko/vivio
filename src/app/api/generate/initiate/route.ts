@@ -103,13 +103,20 @@ export async function POST(request: NextRequest) {
       });
 
       // Обновление job с externalJobId и статусом PROCESSING
-      await prisma.generationJob.update({
-        where: { id: job.id },
-        data: {
-          externalJobId: grokResponse.taskId,
-          status: "PROCESSING",
-        },
-      });
+      try {
+        await prisma.generationJob.update({
+          where: { id: job.id },
+          data: {
+            externalJobId: grokResponse.taskId,
+            status: "PROCESSING",
+          },
+        });
+        console.log(`✅ Job ${job.id} updated with externalJobId: ${grokResponse.taskId}`);
+      } catch (updateError) {
+        console.error(`❌ Failed to update job ${job.id} with externalJobId:`, updateError);
+        // Job все равно создан, но без externalJobId - webhook fallback должен сработать
+        console.warn(`⚠️ Job ${job.id} created but externalJobId not saved - webhook fallback will be used`);
+      }
 
       return NextResponse.json({
         success: true,
