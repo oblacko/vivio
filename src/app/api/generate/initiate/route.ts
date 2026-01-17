@@ -1,11 +1,13 @@
+export const runtime = 'nodejs';
+
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db/client";
 import { grokClient } from "@/lib/grok/client";
-import { getPromptForCategory } from "@/lib/grok/prompts";
+import { getPromptForCategory, DEFAULT_PROMPT } from "@/lib/grok/prompts";
 
 const initiateSchema = z.object({
-  challengeId: z.string().min(1),
+  challengeId: z.string().min(1).optional(),
   imageUrl: z.string().url(),
   userId: z.string().optional(),
 });
@@ -15,42 +17,59 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const validated = initiateSchema.parse(body);
 
-    // Получение челленджа из БД
-    const challenge = await prisma.challenge.findUnique({
-      where: { id: validated.challengeId },
-    });
+    let promptTemplate;
 
-    if (!challenge) {
-      return NextResponse.json(
-        { error: "Challenge not found" },
-        { status: 404 }
+    if (validated.challengeId) {
+      // Получение челленджа из БД
+      console.log("validated.challengeId", validated.challengeId);
+      const challenge = await prisma.challenge.findUnique({
+        where: { id: validated.challengeId },
+      });
+      console.log("challenge", challenge);
+
+      if (!challenge) {
+        return NextResponse.json(
+          { error: "Challenge not found" },
+          { status: 404 }
+        );
+      }
+
+      if (!challenge.isActive) {
+        return NextResponse.json(
+          { error: "Challenge is not active" },
+          { status: 400 }
+        );
+      }
+
+      // Получение промпта для категории
+      promptTemplate = getPromptForCategory(
+        challenge.category as "MONUMENTS" | "PETS" | "FACES" | "SEASONAL"
       );
+    } else {
+      // Использование дефолтного промпта
+      promptTemplate = DEFAULT_PROMPT;
     }
-
-    if (!challenge.isActive) {
-      return NextResponse.json(
-        { error: "Challenge is not active" },
-        { status: 400 }
-      );
-    }
-
-    // Получение промпта для категории
-    const promptTemplate = getPromptForCategory(
-      challenge.category as "MONUMENTS" | "PETS" | "FACES" | "SEASONAL"
-    );
 
     // Создание GenerationJob в БД
+    const jobData: any = {
+      imageUrl: validated.imageUrl,
+      prompt: promptTemplate.prompt,
+      status: "QUEUED" as const,
+      progress: 0,
+      duration: 6,
+      estimatedTime: 30,
+    };
+
+    // Добавление опциональных полей с правильной типизацией
+    if (validated.userId) {
+      jobData.userId = validated.userId;
+    }
+    if (validated.challengeId) {
+      jobData.challengeId = validated.challengeId;
+    }
+
     const job = await prisma.generationJob.create({
-      data: {
-        userId: validated.userId || null,
-        challengeId: validated.challengeId,
-        imageUrl: validated.imageUrl,
-        prompt: promptTemplate.prompt,
-        status: "QUEUED",
-        progress: 0,
-        duration: 6,
-        estimatedTime: 30,
-      },
+      data: jobData,
     });
 
     try {

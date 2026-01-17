@@ -8,12 +8,12 @@ function ChallengesList() {
   const { data: challenges, isLoading, error } = useChallenges();
 
   // Debug logging
-  console.log("ChallengesList state:", { isLoading, error, challengesCount: challenges?.length });
+  console.log("ChallengesPage state:", { isLoading, error, challengesCount: challenges?.length });
 
   if (isLoading) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
-        {[...Array(6)].map((_, i) => (
+        {[...Array(9)].map((_, i) => (
           <Skeleton key={i} className="aspect-[9/16] w-full rounded-lg" />
         ))}
       </div>
@@ -21,7 +21,7 @@ function ChallengesList() {
   }
 
   if (error) {
-    console.error("ChallengesList error:", error);
+    console.error("ChallengesPage error:", error);
     // Продолжаем с пустым массивом челленджей, чтобы показать интерфейс
   }
 
@@ -58,13 +58,13 @@ function ChallengesList() {
   );
 }
 
-export default function HomePage() {
+export default function ChallengesPage() {
   return (
     <main className="container mx-auto px-4 py-8">
       <div className="mb-8">
-        <h1 className="text-4xl font-bold mb-2">Vivio</h1>
+        <h1 className="text-4xl font-bold mb-2">Челленджи</h1>
         <p className="text-muted-foreground">
-          Создавайте удивительные 6-секундные видео с помощью AI
+          Выберите челлендж и создайте свое уникальное видео с помощью AI
         </p>
       </div>
 

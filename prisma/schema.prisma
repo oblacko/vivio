@@ -7,7 +7,6 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("POSTGRES_URL")
 }
 
 enum VideoQuality {
@@ -63,13 +62,14 @@ model Challenge {
   videos          Video[]
   generationJobs  GenerationJob[]
 
+  @@unique([title])
   @@map("challenges")
 }
 
 model GenerationJob {
   id              String    @id @default(cuid())
   userId          String?
-  challengeId     String
+  challengeId     String?
   externalJobId   String?   // ID задачи в Grok API (taskId)
   imageUrl        String
   prompt          String
@@ -83,7 +83,7 @@ model GenerationJob {
   completedAt     DateTime?
 
   user            User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
-  challenge       Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  challenge       Challenge? @relation(fields: [challengeId], references: [id], onDelete: Cascade)
   video           Video?
 
   @@index([userId])

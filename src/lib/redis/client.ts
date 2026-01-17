@@ -1,20 +1,72 @@
 /**
- * Vercel KV (Redis) Client
+ * Redis Client with Vercel KV fallback
  * Используется для rate limiting и кеширования
+ * Поддерживает внешний Redis и Vercel KV как fallback
  */
 
+import { createClient, RedisClientType } from 'redis';
 import { kv } from "@vercel/kv";
 
+const REDIS_URL = process.env.REDIS_URL;
 const KV_REST_API_URL = process.env.KV_REST_API_URL;
 const KV_REST_API_TOKEN = process.env.KV_REST_API_TOKEN;
 
-if (!KV_REST_API_URL || !KV_REST_API_TOKEN) {
-  console.warn(
-    "KV_REST_API_URL and KV_REST_API_TOKEN are not set. Using fallback mode."
-  );
+// Redis клиент для внешнего Redis
+let externalRedis: any = null;
+
+// Функция для инициализации внешнего Redis клиента
+async function initializeExternalRedis() {
+  if (!REDIS_URL) {
+    console.warn("REDIS_URL is not set. Using Vercel KV as fallback.");
+    return null;
+  }
+
+  try {
+    const client = createClient({
+      url: REDIS_URL,
+    });
+
+    client.on('error', (err) => {
+      console.error('External Redis Client Error:', err);
+    });
+
+    await client.connect();
+    console.log('Connected to external Redis');
+    return client;
+  } catch (error) {
+    console.error('Failed to connect to external Redis:', error);
+    return null;
+  }
 }
 
-export const redis = kv;
+// Инициализируем внешний Redis при импорте
+if (REDIS_URL) {
+  initializeExternalRedis().then(client => {
+    externalRedis = client;
+  }).catch(() => {
+    console.warn("Failed to initialize external Redis, falling back to Vercel KV");
+  });
+}
+
+// Основной Redis клиент с fallback логикой
+export const redis = {
+  // Если внешний Redis доступен, используем его, иначе Vercel KV
+  get instance() {
+    return externalRedis || kv;
+  },
+
+  // Проверяем доступность Redis
+  get isExternalRedis() {
+    return externalRedis !== null;
+  },
+
+  get isVercelKV() {
+    return externalRedis === null && KV_REST_API_URL && KV_REST_API_TOKEN;
+  }
+};
+
+// Экспортируем оригинальный Vercel KV клиент для прямого доступа
+export const vercelKV = kv;
 
 /**
  * Rate limiting
@@ -31,7 +83,9 @@ export async function checkRateLimit(
   limit: number,
   windowSeconds: number = 60
 ): Promise<RateLimitResult> {
-  if (!redis) {
+  const redisInstance = redis.instance;
+
+  if (!redisInstance) {
     // Если Redis не настроен, разрешаем запрос (для разработки)
     return {
       success: true,
@@ -47,11 +101,15 @@ export async function checkRateLimit(
 
   try {
     // Получаем текущий счетчик
-    const count = await redis.get<number>(key);
+    const count = await redisInstance.get(key);
 
     if (count === null) {
       // Первый запрос в окне
-      await redis.set(key, 1, { ex: windowSeconds });
+      if (redis.isExternalRedis) {
+        await redisInstance.setEx(key, windowSeconds, '1');
+      } else {
+        await redisInstance.set(key, 1, { ex: windowSeconds });
+      }
       return {
         success: true,
         limit,
@@ -60,9 +118,11 @@ export async function checkRateLimit(
       };
     }
 
-    if (count >= limit) {
+    const numericCount = typeof count === 'string' ? parseInt(count, 10) : count;
+
+    if (numericCount >= limit) {
       // Лимит превышен
-      const ttl = await redis.ttl(key);
+      const ttl = await redisInstance.ttl(key);
       return {
         success: false,
         limit,
@@ -72,11 +132,11 @@ export async function checkRateLimit(
     }
 
     // Увеличиваем счетчик
-    await redis.incr(key);
+    await redisInstance.incr(key);
     return {
       success: true,
       limit,
-      remaining: limit - count - 1,
+      remaining: limit - numericCount - 1,
       reset: now + window,
     };
   } catch (error) {
@@ -95,13 +155,18 @@ export async function checkRateLimit(
  * Кеширование данных
  */
 export async function getCache<T>(key: string): Promise<T | null> {
-  if (!redis) {
+  const redisInstance = redis.instance;
+
+  if (!redisInstance) {
     return null;
   }
 
   try {
-    const data = await redis.get<T>(key);
-    return data;
+    const data = await redisInstance.get(key);
+    if (redis.isExternalRedis && typeof data === 'string') {
+      return JSON.parse(data) as T;
+    }
+    return data as T;
   } catch (error) {
     console.error("Redis get cache error:", error);
     return null;
@@ -113,24 +178,32 @@ export async function setCache<T>(
   value: T,
   ttlSeconds: number
 ): Promise<void> {
-  if (!redis) {
+  const redisInstance = redis.instance;
+
+  if (!redisInstance) {
     return;
   }
 
   try {
-    await redis.set(key, value, { ex: ttlSeconds });
+    if (redis.isExternalRedis) {
+      await redisInstance.setEx(key, ttlSeconds, JSON.stringify(value));
+    } else {
+      await redisInstance.set(key, value, { ex: ttlSeconds });
+    }
   } catch (error) {
     console.error("Redis set cache error:", error);
   }
 }
 
 export async function deleteCache(key: string): Promise<void> {
-  if (!redis) {
+  const redisInstance = redis.instance;
+
+  if (!redisInstance) {
     return;
   }
 
   try {
-    await redis.del(key);
+    await redisInstance.del(key);
   } catch (error) {
     console.error("Redis delete cache error:", error);
   }

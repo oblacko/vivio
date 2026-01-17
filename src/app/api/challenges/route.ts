@@ -1,3 +1,5 @@
+export const runtime = 'nodejs';
+
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
 import { getChallengesCache, setChallengesCache } from "@/lib/redis/client";

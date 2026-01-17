@@ -63,12 +63,16 @@ export async function uploadImage(
   const key = filename || `images/${Date.now()}-${file.name}`;
 
   try {
+    // Конвертируем File в ArrayBuffer, затем в Buffer для совместимости с AWS SDK
+    const arrayBuffer = await file.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+
     const command = new PutObjectCommand({
       Bucket: RAILWAY_BUCKET_NAME,
       Key: key,
-      Body: file,
+      Body: buffer,
       ContentType: file.type,
-      ACL: "public-read", // Делаем файлы публично доступными
+      ACL: "public-read", // Делаем изображения публичными для доступа Grok
     });
 
     await s3Client.send(command);
@@ -196,17 +200,15 @@ export async function getFileAsBlob(key: string): Promise<Blob> {
     }
 
     // Преобразуем поток в Blob
-    const stream = response.Body as ReadableStream;
-    const reader = stream.getReader();
-    const chunks: Uint8Array[] = [];
+    const stream = response.Body as NodeJS.ReadableStream;
+    const chunks: Buffer[] = [];
 
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      chunks.push(value);
+    for await (const chunk of stream) {
+      chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
     }
 
-    const blob = new Blob(chunks);
+    const buffer = Buffer.concat(chunks);
+    const blob = new Blob([buffer]);
     return blob;
   } catch (error) {
     throw new Error(`Failed to get file: ${error}`);

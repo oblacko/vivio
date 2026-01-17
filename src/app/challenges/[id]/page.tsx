@@ -127,13 +127,13 @@ export default function ChallengePage() {
       <div className="mt-12">
         <h2 className="text-2xl font-bold mb-6">Готовые видео</h2>
         {videosLoading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
             {[...Array(6)].map((_, i) => (
               <Skeleton key={i} className="aspect-[9/16] w-full rounded-lg" />
             ))}
           </div>
         ) : videos && videos.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
             {videos.map((video) => (
               <div key={video.id} className="cursor-pointer">
                 <Link href={`/videos/${video.id}`}>

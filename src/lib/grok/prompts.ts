@@ -42,6 +42,14 @@ export function getPromptForCategory(
 }
 
 /**
+ * Дефолтный промпт для генерации видео без челленджа
+ */
+export const DEFAULT_PROMPT: PromptTemplate = {
+  prompt: `Cinematic video with natural, subtle movements. The subject should have gentle, organic motion that brings it to life naturally. Professional cinematography style with smooth transitions, warm lighting, and authentic expressions. The movement should feel real and engaging, creating a captivating 6-second video experience. Vertical format 9:16, cinematic quality.`,
+  negativePrompt: `unnatural movements, robotic motion, distorted features, blur, artifacts, low quality, pixelated, jerky motion, fast movements, shaky camera`,
+};
+
+/**
  * Генерация кастомного промпта с дополнительными деталями
  */
 export function generateCustomPrompt(
