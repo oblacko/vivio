@@ -97,7 +97,7 @@ model Video {
   id              String      @id @default(cuid())
   jobId           String      @unique
   userId          String?
-  challengeId     String
+  challengeId     String?
   videoUrl        String      // URL в Vercel Blob Storage
   thumbnailUrl    String?
   duration        Int         @default(6) // 6 секунд
@@ -109,7 +109,7 @@ model Video {
   updatedAt       DateTime    @updatedAt
 
   user            User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
-  challenge       Challenge   @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  challenge       Challenge?  @relation(fields: [challengeId], references: [id], onDelete: Cascade)
   job             GenerationJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
 
   @@index([userId])

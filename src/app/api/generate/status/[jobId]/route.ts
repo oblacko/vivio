@@ -3,7 +3,7 @@ export const runtime = 'nodejs';
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
 import { grokClient } from "@/lib/grok/client";
-import { uploadVideoFromUrl } from "@/lib/storage/railway-storage";
+import { uploadVideoFromUrl } from "@/lib/storage/vercel-blob";
 
 interface RouteParams {
   params: {
@@ -81,25 +81,25 @@ export async function GET(
             const videoUrl = videoResult.resultUrls[0];
 
             try {
-              // Скачивание видео и загрузка в Railway Storage
+              // Скачивание видео и загрузка в Vercel Blob Storage
               const filename = `video-${job.id}-${Date.now()}.mp4`;
               const blobResult = await uploadVideoFromUrl(videoUrl, filename);
 
-              // Проверка наличия challengeId
-              if (!job.challengeId) {
-                throw new Error("Challenge ID is required for video generation");
-              }
-
               // Создание Video записи в БД
+              const videoData: any = {
+                jobId: job.id,
+                userId: job.userId || null,
+                videoUrl: blobResult.url,
+                duration: 6,
+                quality: "HD",
+              };
+              
+              if (job.challengeId) {
+                videoData.challengeId = job.challengeId;
+              }
+              
               const video = await prisma.video.create({
-                data: {
-                  jobId: job.id,
-                  userId: job.userId || null,
-                  challengeId: job.challengeId ?? undefined,
-                  videoUrl: blobResult.url,
-                  duration: 6,
-                  quality: "HD",
-                },
+                data: videoData,
               });
 
               // Обновление job на COMPLETED
@@ -112,15 +112,17 @@ export async function GET(
                 },
               });
 
-              // Увеличение participantCount в Challenge
-              await prisma.challenge.update({
-                where: { id: job.challengeId },
-                data: {
-                  participantCount: {
-                    increment: 1,
+              // Увеличение participantCount в Challenge (только если есть challengeId)
+              if (job.challengeId) {
+                await prisma.challenge.update({
+                  where: { id: job.challengeId },
+                  data: {
+                    participantCount: {
+                      increment: 1,
+                    },
                   },
-                },
-              });
+                });
+              }
 
               return NextResponse.json({
                 status: "COMPLETED",

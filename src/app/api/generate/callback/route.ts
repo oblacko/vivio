@@ -2,6 +2,8 @@ export const runtime = 'nodejs';
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
+import { grokClient } from "@/lib/grok/client";
+import { uploadVideoFromUrl } from "@/lib/storage/vercel-blob";
 
 export async function POST(request: NextRequest) {
   try {
@@ -85,8 +87,80 @@ export async function POST(request: NextRequest) {
       case "success":
         console.log(`✅ Job ${job.id} completed successfully`);
         updateData.status = "COMPLETED";
-        updateData.resultJson = resultJson;
         updateData.completedAt = new Date();
+        
+        // Обработка видео при успешном завершении
+        if (resultJson) {
+          try {
+            // Парсинг результата для получения URL видео
+            const videoResult = grokClient.parseVideoResult(resultJson);
+            
+            if (videoResult.resultUrls && videoResult.resultUrls.length > 0) {
+              const videoUrl = videoResult.resultUrls[0];
+              console.log(`📹 Video URL received: ${videoUrl}`);
+              
+              // Скачивание видео и загрузка в Vercel Blob Storage
+              const filename = `video-${job.id}-${Date.now()}.mp4`;
+              console.log(`⬇️ Downloading video from ${videoUrl}...`);
+              const blobResult = await uploadVideoFromUrl(videoUrl, filename);
+              console.log(`✅ Video uploaded to Vercel Blob: ${blobResult.url}`);
+              
+              // Проверяем, не создана ли уже запись Video для этого job
+              const existingVideo = await prisma.video.findUnique({
+                where: { jobId: job.id },
+              });
+              
+              if (!existingVideo) {
+                // Создание Video записи в БД
+                const videoData: any = {
+                  jobId: job.id,
+                  userId: job.userId || null,
+                  videoUrl: blobResult.url,
+                  duration: 6,
+                  quality: "HD",
+                };
+                
+                if (job.challengeId) {
+                  videoData.challengeId = job.challengeId;
+                }
+                
+                const video = await prisma.video.create({
+                  data: videoData,
+                });
+                console.log(`✅ Video record created: ${video.id}`);
+                
+                // Увеличение participantCount в Challenge (только если есть challengeId)
+                if (job.challengeId) {
+                  await prisma.challenge.update({
+                    where: { id: job.challengeId },
+                    data: {
+                      participantCount: {
+                        increment: 1,
+                      },
+                    },
+                  });
+                  console.log(`✅ Challenge participantCount incremented`);
+                } else {
+                  console.log(`ℹ️ Video created without challenge`);
+                }
+              } else {
+                console.log(`⚠️ Video record already exists for job ${job.id}`);
+              }
+            } else {
+              console.warn(`⚠️ No video URLs found in resultJson`);
+            }
+          } catch (videoError) {
+            console.error("❌ Video processing error:", videoError);
+            // Устанавливаем статус FAILED при ошибке обработки видео
+            updateData.status = "FAILED";
+            updateData.errorMessage = videoError instanceof Error 
+              ? videoError.message 
+              : "Failed to process video";
+            updateData.completedAt = new Date();
+          }
+        } else {
+          console.warn(`⚠️ No resultJson provided for successful job ${job.id}`);
+        }
         break;
 
       case "fail":
