@@ -27,6 +27,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    console.log('📂 Serving file:', key, 'from URL:', request.url);
     const blob = await getFileAsBlob(key);
 
     return new NextResponse(blob, {

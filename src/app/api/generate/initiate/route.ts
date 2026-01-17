@@ -10,7 +10,10 @@ const initiateSchema = z.object({
   challengeId: z.string().min(1).optional(),
   imageUrl: z.string().url(),
   userId: z.string().optional(),
-});
+}).transform((data) => ({
+  ...data,
+  challengeId: data.challengeId || undefined, // Нормализуем пустые строки в undefined
+}));
 
 export async function POST(request: NextRequest) {
   try {
@@ -22,19 +25,23 @@ export async function POST(request: NextRequest) {
     if (validated.challengeId) {
       // Получение челленджа из БД
       console.log("🔍 Поиск челленджа с ID:", validated.challengeId);
-      
+
       try {
         const challenge = await prisma.challenge.findUnique({
           where: { id: validated.challengeId },
         });
-        
+
         console.log("✅ Результат запроса:", challenge ? `Найден: ${challenge.title}` : "Челлендж не найден");
 
         if (!challenge) {
-          console.warn("⚠️ Челлендж не найден, используем дефолтный промпт");
+          console.warn("⚠️ Челлендж не найден, игнорируем challengeId");
+          // Убираем challengeId из валидированных данных
+          validated.challengeId = undefined;
           promptTemplate = DEFAULT_PROMPT;
         } else if (!challenge.isActive) {
-          console.warn("⚠️ Челлендж неактивен, используем дефолтный промпт");
+          console.warn("⚠️ Челлендж неактивен, игнорируем challengeId");
+          // Убираем challengeId из валидированных данных
+          validated.challengeId = undefined;
           promptTemplate = DEFAULT_PROMPT;
         } else {
           // Получение промпта для категории
@@ -45,9 +52,10 @@ export async function POST(request: NextRequest) {
         }
       } catch (dbError) {
         console.error("❌ Ошибка при запросе к БД:", dbError);
-        // В случае ошибки БД используем дефолтный промпт
+        // В случае ошибки БД игнорируем challengeId
+        validated.challengeId = undefined;
         promptTemplate = DEFAULT_PROMPT;
-        console.log("⚠️ Используется дефолтный промпт из-за ошибки БД");
+        console.log("⚠️ Игнорируем challengeId из-за ошибки БД");
       }
     } else {
       // Использование дефолтного промпта
@@ -68,7 +76,7 @@ export async function POST(request: NextRequest) {
     if (validated.userId) {
       jobData.userId = validated.userId;
     }
-    if (validated.challengeId) {
+    if (validated.challengeId && validated.challengeId.trim()) {
       jobData.challengeId = validated.challengeId;
     }
 

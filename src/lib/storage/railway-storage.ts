@@ -72,17 +72,32 @@ export async function uploadImage(
       Key: key,
       Body: buffer,
       ContentType: file.type,
-      // Railway storage (Tigris) не поддерживает ACL, используем публичный bucket
-      // ACL: "public-read",
+      // Railway storage (Tigris) поддерживает публичный доступ через bucket policy
+      // ACL: "public-read", // Убираем, поскольку bucket должен быть публичным по умолчанию
     });
 
     await s3Client.send(command);
 
-    // Для Railway storage используем API endpoint для публичного доступа
-    // вместо прямого URL, поскольку ACL не поддерживается
-    // Используем полный URL для совместимости с Grok API
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+    // Railway storage (Tigris) не поддерживает публичный доступ через ACL,
+    // поэтому используем API endpoint для проксирования файлов
+    // Определяем публичный URL приложения для API endpoint'а
+    let baseUrl: string;
+
+    if (process.env.VERCEL_URL) {
+      // На Vercel используем VERCEL_URL
+      baseUrl = `https://${process.env.VERCEL_URL}`;
+    } else if (process.env.NEXT_PUBLIC_BASE_URL) {
+      // Используем настроенную переменную окружения
+      baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
+    } else {
+      // Fallback для локальной разработки (но это не будет работать для внешних API)
+      baseUrl = 'http://localhost:3000';
+      console.warn('⚠️ WARNING: Using localhost URL for image access. This will not work with external APIs like Grok!');
+    }
+
     const url = `${baseUrl}/api/upload?key=${key}`;
+
+    console.log('🔗 Generated image URL:', url, 'Base URL:', baseUrl, 'VERCEL_URL:', process.env.VERCEL_URL);
 
     return {
       url,
