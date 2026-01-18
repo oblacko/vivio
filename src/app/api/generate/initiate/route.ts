@@ -18,13 +18,20 @@ const initiateSchema = z.object({
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
+    console.log("📨 API /generate/initiate received body:", JSON.stringify(body, null, 2));
+    console.log("📨 Raw challengeId from request:", body.challengeId, "type:", typeof body.challengeId);
+
     const validated = initiateSchema.parse(body);
+    console.log("✅ Validated data:", JSON.stringify(validated, null, 2));
+    console.log("✅ Validated challengeId:", validated.challengeId, "type:", typeof validated.challengeId);
 
     let promptTemplate;
 
     if (validated.challengeId) {
       // Получение челленджа из БД
       console.log("🔍 Поиск челленджа с ID:", validated.challengeId);
+      console.log("🔍 ChallengeId is truthy:", !!validated.challengeId);
+      console.log("🔍 ChallengeId length:", validated.challengeId.length);
 
       try {
         const challenge = await prisma.challenge.findUnique({
@@ -32,6 +39,12 @@ export async function POST(request: NextRequest) {
         });
 
         console.log("✅ Результат запроса:", challenge ? `Найден: ${challenge.title}` : "Челлендж не найден");
+        console.log("✅ Challenge object:", challenge ? JSON.stringify({
+          id: challenge.id,
+          title: challenge.title,
+          isActive: challenge.isActive,
+          promptTemplate: challenge.promptTemplate?.substring(0, 100) + "..."
+        }, null, 2) : "null");
 
         if (!challenge) {
           console.warn("⚠️ Челлендж не найден, игнорируем challengeId");
@@ -44,11 +57,11 @@ export async function POST(request: NextRequest) {
           validated.challengeId = undefined;
           promptTemplate = DEFAULT_PROMPT;
         } else {
-          // Получение промпта для категории
-          promptTemplate = getPromptForCategory(
-            challenge.category as "MONUMENTS" | "PETS" | "FACES" | "SEASONAL"
-          );
-          console.log("✅ Используется промпт для категории:", challenge.category);
+          // Использование промпта из челленджа
+          promptTemplate = {
+            prompt: challenge.promptTemplate,
+          };
+          console.log("✅ Используется промпт из челленджа ID:", validated.challengeId);
         }
       } catch (dbError) {
         console.error("❌ Ошибка при запросе к БД:", dbError);
@@ -93,6 +106,9 @@ export async function POST(request: NextRequest) {
       console.log("🎬 Инициация генерации видео:");
       console.log("📸 Image URL:", validated.imageUrl);
       console.log("💬 Prompt:", promptTemplate.prompt);
+      console.log("💬 Prompt type:", typeof promptTemplate.prompt);
+      console.log("💬 Prompt length:", promptTemplate.prompt.length);
+      console.log("💬 Is DEFAULT_PROMPT used:", promptTemplate === DEFAULT_PROMPT);
       console.log("🔔 Callback URL:", callbackUrl || "не указан");
 
       const grokResponse = await grokClient.generateVideo({

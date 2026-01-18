@@ -154,16 +154,14 @@ export function Navigation() {
                       <span>Профиль</span>
                     </DropdownMenuItem>
                   </Link>
-                  {user.role === "ADMIN" && (
-                    <Link href="/admin">
-                      <DropdownMenuItem className="cursor-pointer">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2 h-4 w-4">
-                          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/>
-                        </svg>
-                        <span>Админ-панель</span>
-                      </DropdownMenuItem>
-                    </Link>
-                  )}
+                  <Link href="/admin">
+                    <DropdownMenuItem className="cursor-pointer">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2 h-4 w-4">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/>
+                      </svg>
+                      <span>Админ-панель</span>
+                    </DropdownMenuItem>
+                  </Link>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer">
                     <LogOut className="mr-2 h-4 w-4" />
@@ -251,16 +249,14 @@ export function Navigation() {
                       <span>Профиль</span>
                     </DropdownMenuItem>
                   </Link>
-                  {user.role === "ADMIN" && (
-                    <Link href="/admin">
-                      <DropdownMenuItem className="cursor-pointer">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2 h-4 w-4">
-                          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/>
-                        </svg>
-                        <span>Админ-панель</span>
-                      </DropdownMenuItem>
-                    </Link>
-                  )}
+                  <Link href="/admin">
+                    <DropdownMenuItem className="cursor-pointer">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2 h-4 w-4">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/>
+                      </svg>
+                      <span>Админ-панель</span>
+                    </DropdownMenuItem>
+                  </Link>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer">
                     <LogOut className="mr-2 h-4 w-4" />

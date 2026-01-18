@@ -113,10 +113,14 @@ export function ImageToVideoUploader({
     console.log("🚀 Отправка на обработку:", JSON.stringify(payload, null, 2));
     console.log("📋 Детали:", {
       challengeId: challengeId || "не указан",
+      challengeIdType: typeof challengeId,
+      challengeIdLength: challengeId?.length,
       imageUrl: uploadedImageUrl,
       fileName: selectedFile?.name,
       fileSize: selectedFile ? `${(selectedFile.size / 1024 / 1024).toFixed(2)} MB` : "неизвестно",
     });
+    console.log("🔍 Props challengeId:", challengeId);
+    console.log("🔍 Component state challengeId context:", "checking if challengeId prop is consistent");
 
     try {
       setState("processing");

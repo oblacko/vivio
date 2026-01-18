@@ -16,7 +16,9 @@
     "test": "vitest",
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
-    "test:watch": "vitest --watch"
+    "test:watch": "vitest --watch",
+    "cache:clear": "tsx scripts/clear-all-cache.ts",
+    "cache:clear:prod": "tsx scripts/clear-all-cache.ts --prod"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.1",

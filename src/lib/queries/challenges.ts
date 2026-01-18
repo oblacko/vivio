@@ -89,7 +89,7 @@ export function useChallenges() {
         return mockChallenges;
       }
     },
-    staleTime: 60 * 1000, // 1 minute
+    staleTime: 0, // Отключаем кеширование для разработки
     // Увеличиваем время ожидания
     retry: 1,
     retryDelay: 1000,

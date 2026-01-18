@@ -3,7 +3,7 @@ export const runtime = 'nodejs';
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
 
-export const revalidate = 30; // ISR: revalidate каждые 30 секунд
+// export const revalidate = 30; // ISR: отключено для разработки
 
 export async function GET(request: NextRequest) {
   try {

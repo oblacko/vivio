@@ -33,12 +33,6 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    if (session.user.role !== "ADMIN") {
-      return NextResponse.json(
-        { error: "Доступ запрещен. Требуется роль администратора" },
-        { status: 403 }
-      );
-    }
 
     const { id } = params;
 
@@ -114,12 +108,6 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    if (session.user.role !== "ADMIN") {
-      return NextResponse.json(
-        { error: "Доступ запрещен. Требуется роль администратора" },
-        { status: 403 }
-      );
-    }
 
     const { id } = params;
 
