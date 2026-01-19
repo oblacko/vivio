@@ -142,28 +142,43 @@ export default async function ShareVideoPage({ params }: PageProps) {
     userAgent: userAgent,
   }).catch(err => console.error('Analytics error:', err));
 
-  // Определяем, это бот или реальный пользователь
-  const isBot = userAgent?.toLowerCase().includes('bot') || 
-                userAgent?.toLowerCase().includes('crawler') ||
-                userAgent?.toLowerCase().includes('telegram');
+  const redirectUrl = `/videos/${params.id}`;
 
-  // Для ботов показываем простую HTML страницу с метатегами
-  // Для пользователей делаем редирект через JavaScript
-  if (isBot) {
-    // Telegram и другие боты получат HTML с правильными метатегами
-    return (
-      <html>
-        <head>
-          <meta name="robots" content="noindex, nofollow" />
-        </head>
-        <body>
-          <h1>Загрузка видео...</h1>
-          <p>Видео на Vivio</p>
-        </body>
-      </html>
-    );
-  }
-
-  // Для обычных пользователей делаем редирект
-  redirect(`/videos/${params.id}`);
+  // ВОЗВРАЩАЕМ HTML С МЕТАТЕГАМИ + META-REFRESH ДЛЯ РЕДИРЕКТА
+  // Боты читают метатеги, пользователи редиректятся через 0.5 сек
+  return (
+    <html lang="ru">
+      <head>
+        <meta httpEquiv="refresh" content={`0.5; url=${redirectUrl}`} />
+        <script dangerouslySetInnerHTML={{
+          __html: `setTimeout(function() { window.location.href = '${redirectUrl}'; }, 500);`
+        }} />
+      </head>
+      <body style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        height: '100vh',
+        margin: 0,
+        fontFamily: 'system-ui, -apple-system, sans-serif',
+        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        color: 'white',
+      }}>
+        <div style={{ textAlign: 'center' }}>
+          <h1 style={{ fontSize: '2rem', marginBottom: '1rem', fontWeight: 'bold' }}>
+            Vivio
+          </h1>
+          <p style={{ fontSize: '1.2rem', opacity: 0.9 }}>
+            Загрузка видео...
+          </p>
+          <p style={{ fontSize: '0.9rem', opacity: 0.7, marginTop: '1rem' }}>
+            Если автоматический переход не работает,{' '}
+            <a href={redirectUrl} style={{ color: 'white', textDecoration: 'underline' }}>
+              нажмите здесь
+            </a>
+          </p>
+        </div>
+      </body>
+    </html>
+  );
 }
