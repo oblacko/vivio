@@ -5,7 +5,7 @@ import { QueryProvider } from "@/lib/providers/query-provider";
 import { AuthSessionProvider } from "@/lib/providers/session-provider";
 import { Navigation } from "@/components/navigation";
 import { Toaster } from "@/components/ui/sonner";
-import { FloatingUploadButton } from "@/components/upload/FloatingUploadButton";
+import FloatingUploadButton from "@/components/upload/FloatingUploadButton";
 import { UploadProvider } from "@/lib/contexts/upload-context";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -28,7 +28,9 @@ export default function RootLayout({
       <body className={inter.className}>
         <AuthSessionProvider>
           <UploadProvider>
-            <Navigation />
+            <div className="px-4 pt-4">
+              <Navigation />
+            </div>
             <QueryProvider>
               {children}
               <FloatingUploadButton />

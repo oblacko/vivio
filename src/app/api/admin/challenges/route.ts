@@ -27,6 +27,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (session.user.role !== "ADMIN") {
+      return NextResponse.json(
+        { error: "Доступ запрещен. Требуется роль администратора" },
+        { status: 403 }
+      );
+    }
 
     // Валидация данных
     const body = await request.json();

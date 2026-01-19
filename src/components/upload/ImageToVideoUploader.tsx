@@ -21,6 +21,7 @@ import { Progress } from "@/components/ui/progress";
 import { useUploadImage } from "@/lib/queries/upload";
 import { useInitiateGeneration, useGenerationStatus } from "@/lib/queries/generation";
 import { useGenerationStore } from "@/store/useGenerationStore";
+import { useAuth } from "@/lib/hooks/useAuth";
 import { cn } from "@/lib/utils";
 
 type UploadState = "idle" | "uploading" | "file-uploaded" | "processing" | "completed" | "error";
@@ -41,6 +42,7 @@ export function ImageToVideoUploader({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const { user } = useAuth();
   const uploadMutation = useUploadImage();
   const initiateMutation = useInitiateGeneration();
   const { currentJobId, progress, status, videoUrl, videoId, reset } =
@@ -108,6 +110,7 @@ export function ImageToVideoUploader({
     const payload = {
       challengeId: challengeId || undefined,
       imageUrl: uploadedImageUrl,
+      userId: user?.id,
     };
 
     console.log("🚀 Отправка на обработку:", JSON.stringify(payload, null, 2));

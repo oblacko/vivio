@@ -6,9 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { FileUpload as FileUploadUI, GridPattern } from "@/components/ui/file-upload";
 import {
   X,
-  Upload,
   FileIcon,
   Check,
   Download,
@@ -23,6 +23,7 @@ import { toast } from "sonner";
 import { useUploadImage } from "@/lib/queries/upload";
 import { useInitiateGeneration, useGenerationStatus } from "@/lib/queries/generation";
 import { useChallenges } from "@/lib/queries/challenges";
+import { useAuth } from "@/lib/hooks/useAuth";
 
 interface FileUploadProps {
   onClose?: () => void;
@@ -66,31 +67,12 @@ export function FileUpload({ onClose, defaultChallengeId }: FileUploadProps) {
   // Challenge state
   const [selectedChallengeId, setSelectedChallengeId] = useState<string | null>(null);
 
+  const { user } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const uploadMutation = useUploadImage();
   const initiateMutation = useInitiateGeneration();
   const { data: generationStatus } = useGenerationStatus(jobId);
   const { data: challenges = [] } = useChallenges();
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(true);
-  };
-
-  const handleDragLeave = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-
-    const files = e.dataTransfer.files;
-    if (files.length > 0) {
-      handleFileSelection(files[0]);
-    }
-  };
 
   const handleFileSelection = (file: File) => {
     // Блокируем загрузку во время генерации
@@ -118,10 +100,6 @@ export function FileUpload({ onClose, defaultChallengeId }: FileUploadProps) {
     if (files && files.length > 0) {
       handleFileSelection(files[0]);
     }
-  };
-
-  const handleBrowseClick = () => {
-    fileInputRef.current?.click();
   };
 
   const handleCancel = () => {
@@ -179,6 +157,7 @@ export function FileUpload({ onClose, defaultChallengeId }: FileUploadProps) {
       const result = await initiateMutation.mutateAsync({
         imageUrl: uploadedImageUrl,
         challengeId: selectedChallengeId || undefined,
+        userId: user?.id,
       });
 
       setJobId(result.jobId);
@@ -309,8 +288,8 @@ export function FileUpload({ onClose, defaultChallengeId }: FileUploadProps) {
   };
 
   return (
-    <div className="space-y-4 max-w-[980px] mx-auto flex flex-col h-full">
-        <h2 className="text-2xl font-semibold">
+    <div className="space-y-4 w-full flex flex-col h-full">
+        <h2 className="text-2xl font-semibold flex w-full">
           {step === 1 && "Загрузка файла"}
           {step === 2 && "Кадрирование изображения"}
           {step === 3 && "Обработка"}
@@ -320,49 +299,14 @@ export function FileUpload({ onClose, defaultChallengeId }: FileUploadProps) {
         {step === 1 && (
           <>
             <div className="space-y-4 flex-1 flex flex-col w-full">
-              <div
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                onDrop={handleDrop}
-                className={`
-                  border-2 border-dashed rounded-lg p-8 text-center transition-colors flex flex-col items-center justify-center min-h-[400px] w-full self-stretch
-                  ${
-                    jobId && generationStatus?.status !== "completed" && generationStatus?.status !== "failed"
-                      ? "border-gray-200 bg-gray-50 cursor-not-allowed opacity-50"
-                      : isDragging
-                      ? "border-blue-500 bg-blue-50 cursor-pointer"
-                      : "border-gray-300 hover:border-gray-400 cursor-pointer"
-                  }
-                `}
-              onClick={
-                jobId && generationStatus?.status !== "completed" && generationStatus?.status !== "failed"
-                  ? undefined
-                  : handleBrowseClick
-              }
-            >
-              <Upload
-                className={`size-12 mx-auto mb-4 ${isDragging ? "text-blue-500" : "text-gray-400"}`}
-              />
-
-              <p className="text-lg mb-2">
-                {isDragging
-                  ? "Отпустите файл для загрузки"
-                  : "Перетащите файл сюда"}
-              </p>
-              <p className="text-sm text-gray-500 mb-4">или</p>
-              <Button
-                variant="outline"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (!(jobId && generationStatus?.status !== "completed" && generationStatus?.status !== "failed")) {
-                    handleBrowseClick();
-                  }
-                }}
+              <FileUploadUI
+                onChange={handleFileSelection}
+                onError={(error) => toast.error(error)}
+                accept="image/*"
                 disabled={!!(jobId && generationStatus?.status !== "completed" && generationStatus?.status !== "failed")}
-              >
-                Выбрать файл
-              </Button>
-            </div>
+                file={uploadedFile}
+                isDragging={isDragging}
+              />
 
               <input
                 ref={fileInputRef}
@@ -372,22 +316,6 @@ export function FileUpload({ onClose, defaultChallengeId }: FileUploadProps) {
                 onChange={handleFileInput}
                 disabled={!!(jobId && generationStatus?.status !== "completed" && generationStatus?.status !== "failed")}
               />
-
-              {uploadedFile && (
-                <div className="space-y-3 p-4 bg-gray-50 rounded-lg">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <FileIcon className="size-8 text-blue-500" />
-                      <div>
-                        <p className="font-medium">{uploadedFile.name}</p>
-                        <p className="text-sm text-gray-500">
-                          {(uploadedFile.size / 1024).toFixed(2)} KB
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
             </div>
           </>
         )}
@@ -472,7 +400,7 @@ export function FileUpload({ onClose, defaultChallengeId }: FileUploadProps) {
         {/* Step 3: Final Upload & Result */}
         {step === 3 && (
           <>
-            <Card className="p-4 bg-gray-50">
+            <Card className="p-4 border-0 shadow-none bg-transparent">
               {croppedImage && (
                 <div className="relative aspect-square max-w-md mx-auto bg-white rounded-lg overflow-hidden shadow-sm">
                   <NextImage
@@ -487,7 +415,7 @@ export function FileUpload({ onClose, defaultChallengeId }: FileUploadProps) {
             </Card>
 
             {uploadMutation.isPending && (
-              <div className="space-y-3 p-4 bg-gray-50 rounded-lg">
+              <div className="space-y-3 p-4 rounded-lg">
                 <div className="space-y-2">
                   <div className="flex items-center justify-center gap-2">
                     <Loader2 className="size-5 animate-spin text-blue-500" />

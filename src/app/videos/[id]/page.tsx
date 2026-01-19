@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Heart, Share2, Eye, ArrowLeft } from "lucide-react";
+import { Heart, Share2, Eye, ArrowLeft, Forward } from "lucide-react";
 import Link from "next/link";
 import { useVideoStore } from "@/store/useVideoStore";
 import { useAuth } from "@/lib/hooks/useAuth";
@@ -107,6 +107,10 @@ export default function VideoPage() {
               />
               <span className="font-medium">{video.likesCount}</span>
             </div>
+            <div className="flex items-center gap-2">
+              <Forward className="w-5 h-5 text-muted-foreground" />
+              <span className="font-medium">{video.shareCount || 0}</span>
+            </div>
           </div>
 
           {/* Пользователь */}
@@ -147,7 +151,7 @@ export default function VideoPage() {
             </Button>
 
             <ShareDialog
-              url={typeof window !== 'undefined' ? window.location.href : ''}
+              videoId={videoId}
               title={video?.challenge?.title || "Vivio Video"}
             >
               <Button variant="outline" className="flex-1">

@@ -45,7 +45,7 @@ export default function AdminPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
+    if (!isLoading && (!isAuthenticated || user?.role !== "ADMIN")) {
       router.push("/");
     }
   }, [isLoading, isAuthenticated, user, router]);
@@ -136,7 +136,7 @@ export default function AdminPage() {
     );
   }
 
-  if (!isAuthenticated) {
+  if (!isAuthenticated || user?.role !== "ADMIN") {
     return null;
   }
 

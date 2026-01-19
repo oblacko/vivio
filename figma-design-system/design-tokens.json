@@ -1,0 +1,477 @@
+{
+  "$schema": "https://json.schemastore.org/design-tokens.json",
+  "version": "1.0.0",
+  "name": "Vivio Design System",
+  "description": "Design tokens for Vivio - AI Video Generation Platform",
+  
+  "colors": {
+    "light": {
+      "background": {
+        "value": "hsl(0, 0%, 100%)",
+        "type": "color",
+        "description": "Primary background color"
+      },
+      "foreground": {
+        "value": "hsl(222.2, 84%, 4.9%)",
+        "type": "color",
+        "description": "Primary text color"
+      },
+      "card": {
+        "value": "hsl(0, 0%, 100%)",
+        "type": "color",
+        "description": "Card background"
+      },
+      "card-foreground": {
+        "value": "hsl(222.2, 84%, 4.9%)",
+        "type": "color",
+        "description": "Card text color"
+      },
+      "popover": {
+        "value": "hsl(0, 0%, 100%)",
+        "type": "color",
+        "description": "Popover background"
+      },
+      "popover-foreground": {
+        "value": "hsl(222.2, 84%, 4.9%)",
+        "type": "color",
+        "description": "Popover text color"
+      },
+      "primary": {
+        "value": "hsl(222.2, 47.4%, 11.2%)",
+        "type": "color",
+        "description": "Primary brand color - dark blue"
+      },
+      "primary-foreground": {
+        "value": "hsl(210, 40%, 98%)",
+        "type": "color",
+        "description": "Text on primary color"
+      },
+      "secondary": {
+        "value": "hsl(210, 40%, 96.1%)",
+        "type": "color",
+        "description": "Secondary background color"
+      },
+      "secondary-foreground": {
+        "value": "hsl(222.2, 47.4%, 11.2%)",
+        "type": "color",
+        "description": "Text on secondary color"
+      },
+      "muted": {
+        "value": "hsl(210, 40%, 96.1%)",
+        "type": "color",
+        "description": "Muted backgrounds"
+      },
+      "muted-foreground": {
+        "value": "hsl(215.4, 16.3%, 46.9%)",
+        "type": "color",
+        "description": "Muted text color"
+      },
+      "accent": {
+        "value": "hsl(210, 40%, 96.1%)",
+        "type": "color",
+        "description": "Accent color"
+      },
+      "accent-foreground": {
+        "value": "hsl(222.2, 47.4%, 11.2%)",
+        "type": "color",
+        "description": "Text on accent color"
+      },
+      "destructive": {
+        "value": "hsl(0, 84.2%, 60.2%)",
+        "type": "color",
+        "description": "Error/destructive actions"
+      },
+      "destructive-foreground": {
+        "value": "hsl(210, 40%, 98%)",
+        "type": "color",
+        "description": "Text on destructive color"
+      },
+      "border": {
+        "value": "hsl(214.3, 31.8%, 91.4%)",
+        "type": "color",
+        "description": "Border color"
+      },
+      "input": {
+        "value": "hsl(214.3, 31.8%, 91.4%)",
+        "type": "color",
+        "description": "Input border color"
+      },
+      "ring": {
+        "value": "hsl(222.2, 84%, 4.9%)",
+        "type": "color",
+        "description": "Focus ring color"
+      }
+    },
+    "dark": {
+      "background": {
+        "value": "hsl(222.2, 84%, 4.9%)",
+        "type": "color",
+        "description": "Primary background color"
+      },
+      "foreground": {
+        "value": "hsl(210, 40%, 98%)",
+        "type": "color",
+        "description": "Primary text color"
+      },
+      "card": {
+        "value": "hsl(222.2, 84%, 4.9%)",
+        "type": "color",
+        "description": "Card background"
+      },
+      "card-foreground": {
+        "value": "hsl(210, 40%, 98%)",
+        "type": "color",
+        "description": "Card text color"
+      },
+      "popover": {
+        "value": "hsl(222.2, 84%, 4.9%)",
+        "type": "color",
+        "description": "Popover background"
+      },
+      "popover-foreground": {
+        "value": "hsl(210, 40%, 98%)",
+        "type": "color",
+        "description": "Popover text color"
+      },
+      "primary": {
+        "value": "hsl(210, 40%, 98%)",
+        "type": "color",
+        "description": "Primary brand color - light"
+      },
+      "primary-foreground": {
+        "value": "hsl(222.2, 47.4%, 11.2%)",
+        "type": "color",
+        "description": "Text on primary color"
+      },
+      "secondary": {
+        "value": "hsl(217.2, 32.6%, 17.5%)",
+        "type": "color",
+        "description": "Secondary background color"
+      },
+      "secondary-foreground": {
+        "value": "hsl(210, 40%, 98%)",
+        "type": "color",
+        "description": "Text on secondary color"
+      },
+      "muted": {
+        "value": "hsl(217.2, 32.6%, 17.5%)",
+        "type": "color",
+        "description": "Muted backgrounds"
+      },
+      "muted-foreground": {
+        "value": "hsl(215, 20.2%, 65.1%)",
+        "type": "color",
+        "description": "Muted text color"
+      },
+      "accent": {
+        "value": "hsl(217.2, 32.6%, 17.5%)",
+        "type": "color",
+        "description": "Accent color"
+      },
+      "accent-foreground": {
+        "value": "hsl(210, 40%, 98%)",
+        "type": "color",
+        "description": "Text on accent color"
+      },
+      "destructive": {
+        "value": "hsl(0, 62.8%, 30.6%)",
+        "type": "color",
+        "description": "Error/destructive actions"
+      },
+      "destructive-foreground": {
+        "value": "hsl(210, 40%, 98%)",
+        "type": "color",
+        "description": "Text on destructive color"
+      },
+      "border": {
+        "value": "hsl(217.2, 32.6%, 17.5%)",
+        "type": "color",
+        "description": "Border color"
+      },
+      "input": {
+        "value": "hsl(217.2, 32.6%, 17.5%)",
+        "type": "color",
+        "description": "Input border color"
+      },
+      "ring": {
+        "value": "hsl(212.7, 26.8%, 83.9%)",
+        "type": "color",
+        "description": "Focus ring color"
+      }
+    },
+    "chart": {
+      "1": {
+        "value": "hsl(12, 76%, 61%)",
+        "type": "color"
+      },
+      "2": {
+        "value": "hsl(173, 58%, 39%)",
+        "type": "color"
+      },
+      "3": {
+        "value": "hsl(197, 37%, 24%)",
+        "type": "color"
+      },
+      "4": {
+        "value": "hsl(43, 74%, 66%)",
+        "type": "color"
+      },
+      "5": {
+        "value": "hsl(27, 87%, 67%)",
+        "type": "color"
+      }
+    }
+  },
+  
+  "typography": {
+    "fontFamily": {
+      "base": {
+        "value": "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+        "type": "fontFamily"
+      }
+    },
+    "fontSize": {
+      "xs": {
+        "value": "0.75rem",
+        "type": "dimension",
+        "description": "12px"
+      },
+      "sm": {
+        "value": "0.875rem",
+        "type": "dimension",
+        "description": "14px"
+      },
+      "base": {
+        "value": "1rem",
+        "type": "dimension",
+        "description": "16px"
+      },
+      "lg": {
+        "value": "1.125rem",
+        "type": "dimension",
+        "description": "18px"
+      },
+      "xl": {
+        "value": "1.25rem",
+        "type": "dimension",
+        "description": "20px"
+      },
+      "2xl": {
+        "value": "1.5rem",
+        "type": "dimension",
+        "description": "24px"
+      },
+      "3xl": {
+        "value": "1.875rem",
+        "type": "dimension",
+        "description": "30px"
+      },
+      "4xl": {
+        "value": "2.25rem",
+        "type": "dimension",
+        "description": "36px"
+      },
+      "6xl": {
+        "value": "3.75rem",
+        "type": "dimension",
+        "description": "60px"
+      }
+    },
+    "fontWeight": {
+      "normal": {
+        "value": "400",
+        "type": "fontWeight"
+      },
+      "medium": {
+        "value": "500",
+        "type": "fontWeight"
+      },
+      "semibold": {
+        "value": "600",
+        "type": "fontWeight"
+      },
+      "bold": {
+        "value": "700",
+        "type": "fontWeight"
+      }
+    },
+    "lineHeight": {
+      "tight": {
+        "value": "1.25",
+        "type": "dimension"
+      },
+      "normal": {
+        "value": "1.5",
+        "type": "dimension"
+      },
+      "relaxed": {
+        "value": "1.625",
+        "type": "dimension"
+      }
+    }
+  },
+  
+  "spacing": {
+    "0": {
+      "value": "0px",
+      "type": "dimension"
+    },
+    "1": {
+      "value": "0.25rem",
+      "type": "dimension",
+      "description": "4px"
+    },
+    "2": {
+      "value": "0.5rem",
+      "type": "dimension",
+      "description": "8px"
+    },
+    "3": {
+      "value": "0.75rem",
+      "type": "dimension",
+      "description": "12px"
+    },
+    "4": {
+      "value": "1rem",
+      "type": "dimension",
+      "description": "16px"
+    },
+    "5": {
+      "value": "1.25rem",
+      "type": "dimension",
+      "description": "20px"
+    },
+    "6": {
+      "value": "1.5rem",
+      "type": "dimension",
+      "description": "24px"
+    },
+    "8": {
+      "value": "2rem",
+      "type": "dimension",
+      "description": "32px"
+    },
+    "10": {
+      "value": "2.5rem",
+      "type": "dimension",
+      "description": "40px"
+    },
+    "12": {
+      "value": "3rem",
+      "type": "dimension",
+      "description": "48px"
+    },
+    "16": {
+      "value": "4rem",
+      "type": "dimension",
+      "description": "64px"
+    },
+    "20": {
+      "value": "5rem",
+      "type": "dimension",
+      "description": "80px"
+    },
+    "24": {
+      "value": "6rem",
+      "type": "dimension",
+      "description": "96px"
+    }
+  },
+  
+  "borderRadius": {
+    "none": {
+      "value": "0px",
+      "type": "dimension"
+    },
+    "sm": {
+      "value": "calc(0.5rem - 4px)",
+      "type": "dimension",
+      "description": "Small radius"
+    },
+    "md": {
+      "value": "calc(0.5rem - 2px)",
+      "type": "dimension",
+      "description": "Medium radius"
+    },
+    "lg": {
+      "value": "0.5rem",
+      "type": "dimension",
+      "description": "Large radius (default)"
+    },
+    "xl": {
+      "value": "0.75rem",
+      "type": "dimension",
+      "description": "Extra large radius"
+    },
+    "2xl": {
+      "value": "1rem",
+      "type": "dimension",
+      "description": "2XL radius"
+    },
+    "full": {
+      "value": "9999px",
+      "type": "dimension",
+      "description": "Fully rounded (pills, avatars)"
+    }
+  },
+  
+  "shadows": {
+    "sm": {
+      "value": "0 1px 2px 0 rgb(0 0 0 / 0.05)",
+      "type": "boxShadow"
+    },
+    "md": {
+      "value": "0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)",
+      "type": "boxShadow"
+    },
+    "lg": {
+      "value": "0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)",
+      "type": "boxShadow"
+    },
+    "xl": {
+      "value": "0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)",
+      "type": "boxShadow"
+    }
+  },
+  
+  "aspectRatios": {
+    "video-vertical": {
+      "value": "9 / 16",
+      "type": "dimension",
+      "description": "Vertical video format (TikTok-style)"
+    },
+    "video-horizontal": {
+      "value": "16 / 9",
+      "type": "dimension",
+      "description": "Horizontal video format"
+    },
+    "square": {
+      "value": "1 / 1",
+      "type": "dimension",
+      "description": "Square format"
+    }
+  },
+  
+  "breakpoints": {
+    "sm": {
+      "value": "640px",
+      "type": "dimension"
+    },
+    "md": {
+      "value": "768px",
+      "type": "dimension"
+    },
+    "lg": {
+      "value": "1024px",
+      "type": "dimension"
+    },
+    "xl": {
+      "value": "1280px",
+      "type": "dimension"
+    },
+    "2xl": {
+      "value": "1536px",
+      "type": "dimension"
+    }
+  }
+}

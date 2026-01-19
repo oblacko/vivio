@@ -9,6 +9,7 @@ export interface Video {
   quality: string;
   likesCount: number;
   viewsCount: number;
+  shareCount: number;
   userId: string | null;
   challengeId: string;
   createdAt: string;
