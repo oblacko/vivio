@@ -5,13 +5,13 @@
 
 const videoId = process.argv[2] || 'test-video-id';
 const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-const url = `${baseUrl}/v/${videoId}`;
+const url = `${baseUrl}/videos/${videoId}`;
 
 console.log('\n=== ТЕСТ СТРАНИЦЫ ШЕРИНГА ===\n');
 console.log('URL:', url);
 console.log('Video ID:', videoId);
 console.log('\n=== ГЕНЕРИРУЕМАЯ ССЫЛКА В ShareDialog ===');
-console.log(`${baseUrl}/v/${videoId}`);
+console.log(`${baseUrl}/videos/${videoId}`);
 
 async function testSharePage() {
   try {

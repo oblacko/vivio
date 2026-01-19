@@ -1,177 +1,142 @@
-"use client";
+import type { Metadata } from "next";
+import { notFound } from "next/navigation";
+import { prisma } from "@/lib/db/client";
+import { VideoPageClient } from "./VideoPageClient";
 
-import { useParams } from "next/navigation";
-import { useVideo, useLikeVideo } from "@/lib/queries/videos";
-import { VideoPlayer } from "@/components/video/VideoPlayer";
-import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Heart, Share2, Eye, ArrowLeft, Forward } from "lucide-react";
-import Link from "next/link";
-import { useVideoStore } from "@/store/useVideoStore";
-import { useAuth } from "@/lib/hooks/useAuth";
-import { ShareDialog } from "@/components/share/ShareDialog";
-
-export default function VideoPage() {
-  const params = useParams();
-  const videoId = params.id as string;
-
-  const { data: video, isLoading } = useVideo(videoId);
-  const { likedVideos, toggleLike } = useVideoStore();
-  const likeMutation = useLikeVideo();
-  const { isAuthenticated, user } = useAuth();
-
-  const isLiked = likedVideos.has(videoId);
-
-  const handleLike = () => {
-    if (!isAuthenticated) {
-      alert('Необходимо авторизоваться для лайка видео');
-      return;
-    }
-
-    if (isLiked) {
-      alert('Вы уже лайкнули это видео');
-      return;
-    }
-
-    toggleLike(videoId);
-    likeMutation.mutate(videoId);
+interface PageProps {
+  params: {
+    id: string;
   };
+}
 
+async function getVideo(id: string) {
+  const video = await prisma.video.findUnique({
+    where: { id },
+    include: {
+      user: {
+        select: {
+          id: true,
+          name: true,
+          image: true,
+        },
+      },
+      challenge: {
+        select: {
+          id: true,
+          title: true,
+          category: true,
+          description: true,
+        },
+      },
+    },
+  });
 
-  if (isLoading) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <Skeleton className="aspect-[9/16] w-full max-w-md mx-auto mb-8" />
-        <Skeleton className="h-32 w-full" />
-      </div>
-    );
-  }
+  return video;
+}
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const video = await getVideo(params.id);
 
   if (!video) {
-    return (
-      <div className="container mx-auto px-4 py-8 text-center">
-        <p className="text-destructive">Видео не найдено</p>
-        <Link href="/">
-          <Button variant="outline" className="mt-4">
-            Вернуться на главную
-          </Button>
-        </Link>
-      </div>
-    );
+    return {
+      title: "Видео не найдено",
+    };
   }
 
-  return (
-    <div className="container mx-auto px-4 py-8 max-w-4xl">
-      <Link href={`/challenges/${video.challengeId}`}>
-        <Button variant="ghost" className="mb-4">
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Назад к тренду
-        </Button>
-      </Link>
+  const videoTitle = video.challenge?.title || "Видео на Vivio";
+  const videoDescription = 
+    video.challenge?.description || 
+    `Смотрите это ${video.duration}-секундное видео на Vivio${video.user?.name ? `. Создано ${video.user.name}` : ''}`;
+  
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://vivio.vercel.app';
+  const videoUrl = `${baseUrl}/videos/${video.id}`;
+  
+  // Используем thumbnailUrl для превью
+  const previewImage = video.thumbnailUrl || `${baseUrl}/api/og?id=${video.id}`;
 
-      <div className="grid md:grid-cols-2 gap-8">
-        {/* Видео плеер */}
-        <div className="w-full">
-          <VideoPlayer
-            src={video.videoUrl}
-            aspectRatio="vertical"
-            showControls={true}
-            className="w-full"
-          />
-        </div>
+  return {
+    title: videoTitle,
+    description: videoDescription,
+    metadataBase: new URL(baseUrl),
+    openGraph: {
+      type: 'video.other',
+      title: videoTitle,
+      description: videoDescription,
+      url: videoUrl,
+      siteName: 'Vivio',
+      locale: 'ru_RU',
+      images: [
+        {
+          url: previewImage,
+          width: 1200,
+          height: 630,
+          alt: videoTitle,
+          type: 'image/jpeg',
+        }
+      ],
+      videos: [
+        {
+          url: video.videoUrl,
+          secureUrl: video.videoUrl,
+          type: 'video/mp4',
+          width: 1080,
+          height: 1920,
+        }
+      ],
+    },
+    twitter: {
+      card: 'player',
+      title: videoTitle,
+      description: videoDescription,
+      site: '@vivio',
+      images: [previewImage],
+      players: {
+        playerUrl: video.videoUrl,
+        streamUrl: video.videoUrl,
+        width: 1080,
+        height: 1920,
+      },
+    },
+    other: {
+      // Open Graph дополнительные
+      'og:image': previewImage,
+      'og:image:width': '1200',
+      'og:image:height': '630',
+      'og:image:type': 'image/jpeg',
+      
+      // Видео теги
+      'og:video': video.videoUrl,
+      'og:video:url': video.videoUrl,
+      'og:video:secure_url': video.videoUrl,
+      'og:video:type': 'video/mp4',
+      'og:video:width': '1080',
+      'og:video:height': '1920',
+      
+      // Twitter
+      'twitter:player': video.videoUrl,
+      'twitter:player:width': '1080',
+      'twitter:player:height': '1920',
+      
+      // VK
+      'vk:image': previewImage,
+      
+      // Telegram
+      'telegram:player': video.videoUrl,
+      'telegram:player:width': '1080',
+      'telegram:player:height': '1920',
+    },
+    alternates: {
+      canonical: videoUrl,
+    },
+  };
+}
 
-        {/* Информация о видео */}
-        <div className="space-y-6">
-          <div>
-            <h1 className="text-2xl font-bold mb-2">
-              {video.challenge?.title || "Видео"}
-            </h1>
-            <Badge variant="outline" className="mb-4">
-              {video.challenge?.category}
-            </Badge>
-          </div>
+export default async function VideoPage({ params }: PageProps) {
+  const video = await getVideo(params.id);
 
-          {/* Статистика */}
-          <div className="flex items-center gap-6">
-            <div className="flex items-center gap-2">
-              <Eye className="w-5 h-5 text-muted-foreground" />
-              <span className="font-medium">{video.viewsCount}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Heart
-                className={`w-5 h-5 ${
-                  isLiked ? "text-red-500 fill-current" : "text-muted-foreground"
-                }`}
-              />
-              <span className="font-medium">{video.likesCount}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Forward className="w-5 h-5 text-muted-foreground" />
-              <span className="font-medium">{video.shareCount || 0}</span>
-            </div>
-          </div>
+  if (!video) {
+    notFound();
+  }
 
-          {/* Пользователь */}
-          {video.user && (
-            <Link href={`/profile/${video.user.id}`}>
-              <div className="flex items-center gap-3 p-4 rounded-lg border hover:bg-muted/50 transition-colors cursor-pointer">
-                <Avatar>
-                  <AvatarImage src={video.user.image || undefined} />
-                  <AvatarFallback>
-                    {video.user.name?.charAt(0).toUpperCase() || "U"}
-                  </AvatarFallback>
-                </Avatar>
-                <div>
-                  <p className="font-medium">{video.user.name || "Пользователь"}</p>
-                </div>
-              </div>
-            </Link>
-          )}
-
-          {/* Действия */}
-          <div className="flex items-center gap-2">
-            <Button
-              variant={isLiked ? "default" : "outline"}
-              onClick={handleLike}
-              disabled={!isAuthenticated || isLiked}
-              className="flex-1"
-            >
-              <Heart
-                className={`w-4 h-4 mr-2 ${
-                  isLiked ? "fill-current" : ""
-                }`}
-              />
-              {!isAuthenticated
-                ? "Войдите для лайка"
-                : isLiked
-                ? "Лайкнуто"
-                : "Лайкнуть"}
-            </Button>
-
-            <ShareDialog
-              videoId={videoId}
-              title={video?.challenge?.title || "Vivio Video"}
-            >
-              <Button variant="outline" className="flex-1">
-                <Share2 className="w-4 h-4 mr-2" />
-                Поделиться
-              </Button>
-            </ShareDialog>
-          </div>
-
-          {/* Метаданные */}
-          <div className="text-sm text-muted-foreground">
-            <p>Длительность: {video.duration} секунд</p>
-            <p>Качество: {video.quality}</p>
-            <p>
-              Создано:{" "}
-              {new Date(video.createdAt).toLocaleDateString("ru-RU")}
-            </p>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+  return <VideoPageClient videoId={params.id} />;
 }

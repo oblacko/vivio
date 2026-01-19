@@ -12,11 +12,8 @@ const globalForPrisma = globalThis as unknown as {
 };
 
 // NOTE: Using PrismaPg adapter for PostgreSQL
-// Исправляем SSL режим для совместимости с будущими версиями pg-connection-string
-const connectionString = process.env.DATABASE_URL?.replace('sslmode=require', 'sslmode=verify-full');
 const pool = new Pool({
-  connectionString,
-  ssl: { rejectUnauthorized: true } // Явно устанавливаем полную верификацию SSL
+  connectionString: process.env.DATABASE_URL,
 });
 const adapter = new PrismaPg(pool);
 

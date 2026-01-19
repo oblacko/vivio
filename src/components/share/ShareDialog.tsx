@@ -67,9 +67,9 @@ export function ShareDialog({ videoId, title, children }: ShareDialogProps) {
   const [copied, setCopied] = useState(false);
   const [supportsWebShare, setSupportsWebShare] = useState(false);
 
-  // Генерируем короткую ссылку для шеринга
+  // Генерируем ссылку для шеринга
   const shareUrl = typeof window !== 'undefined' 
-    ? `${window.location.origin}/v/${videoId}`
+    ? `${window.location.origin}/videos/${videoId}`
     : '';
 
   useEffect(() => {
