@@ -113,6 +113,7 @@ export async function POST(request: NextRequest) {
               if (!existingVideo) {
                 // Оптимизация и загрузка thumbnail из исходного изображения
                 let thumbnailUrl: string | null = null;
+                let ogImageUrl: string | null = null;
                 try {
                   // Извлекаем URL исходного изображения из параметров вебхука
                   let originalImageUrl: string | null = null;
@@ -135,10 +136,16 @@ export async function POST(request: NextRequest) {
                   
                   if (originalImageUrl) {
                     console.log(`🖼️ Optimizing thumbnail from original image: ${originalImageUrl}`);
-                    thumbnailUrl = await optimizeAndUploadThumbnail(originalImageUrl, job.id);
+                    const thumbnailResult = await optimizeAndUploadThumbnail(originalImageUrl, job.id);
+                    thumbnailUrl = thumbnailResult.thumbnailUrl;
+                    ogImageUrl = thumbnailResult.ogImageUrl;
                     if (thumbnailUrl) {
                       console.log(`✅ Thumbnail optimized and uploaded: ${thumbnailUrl}`);
-                    } else {
+                    }
+                    if (ogImageUrl) {
+                      console.log(`✅ OG image optimized and uploaded: ${ogImageUrl}`);
+                    }
+                    if (!thumbnailUrl && !ogImageUrl) {
                       console.warn(`⚠️ Thumbnail optimization failed, continuing without thumbnail`);
                     }
                   } else {
@@ -155,6 +162,7 @@ export async function POST(request: NextRequest) {
                   userId: job.userId || null,
                   videoUrl: blobResult.url,
                   thumbnailUrl: thumbnailUrl,
+                  ogImageUrl: ogImageUrl,
                   duration: 6,
                   quality: "HD",
                 };
@@ -167,6 +175,77 @@ export async function POST(request: NextRequest) {
                   data: videoData,
                 });
                 console.log(`✅ Video record created: ${video.id}`);
+                
+                // Списание кредитов при успешной генерации (только если есть userId)
+                if (job.userId) {
+                  try {
+                    // Получение настроек приложения
+                    let settings = await prisma.appSettings.findUnique({
+                      where: { id: "singleton" },
+                    });
+
+                    if (!settings) {
+                      settings = await prisma.appSettings.create({
+                        data: {
+                          id: "singleton",
+                          generationCost: 20,
+                        },
+                      });
+                    }
+
+                    // Проверка, не было ли уже списания для этого job
+                    const existingTransaction = await prisma.creditTransaction.findFirst({
+                      where: {
+                        userId: job.userId,
+                        description: {
+                          contains: `Job ${job.id}`,
+                        },
+                      },
+                    });
+
+                    if (!existingTransaction) {
+                      // Атомарное списание кредитов
+                      await prisma.$transaction(async (tx) => {
+                        // Получение текущего баланса
+                        const user = await tx.user.findUnique({
+                          where: { id: job.userId! },
+                          select: { balance: true },
+                        });
+
+                        if (user && user.balance >= settings.generationCost) {
+                          // Обновление баланса
+                          await tx.user.update({
+                            where: { id: job.userId! },
+                            data: {
+                              balance: {
+                                decrement: settings.generationCost,
+                              },
+                            },
+                          });
+
+                          // Создание транзакции
+                          await tx.creditTransaction.create({
+                            data: {
+                              userId: job.userId!,
+                              type: "DEBIT",
+                              amount: settings.generationCost,
+                              description: `Генерация видео (Job ${job.id})`,
+                            },
+                          });
+
+                          console.log(`✅ Credits debited: ${settings.generationCost} for user ${job.userId}`);
+                        } else {
+                          console.warn(`⚠️ Insufficient balance for user ${job.userId}, skipping debit`);
+                        }
+                      });
+                    } else {
+                      console.log(`ℹ️ Credits already debited for job ${job.id}`);
+                    }
+                  } catch (creditError) {
+                    console.error("❌ Credit debit error:", creditError);
+                    // Не прерываем процесс, только логируем ошибку
+                  }
+                }
                 
                 // Увеличение participantCount в Challenge (только если есть challengeId)
                 if (job.challengeId) {

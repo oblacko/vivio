@@ -198,16 +198,25 @@ export async function generateThumbnailFromVideo(
 }
 
 /**
+ * Результат оптимизации thumbnail
+ */
+export interface ThumbnailResult {
+  thumbnailUrl: string | null; // Вертикальное превью для видео
+  ogImageUrl: string | null;   // Горизонтальное превью 1200x630 для og:image
+}
+
+/**
  * Оптимизация и загрузка thumbnail из исходного изображения
+ * Создает две версии: вертикальное превью и горизонтальное превью для og:image
  * Использует sharp для сжатия изображения до минимального веса с оптимальным качеством
  */
 export async function optimizeAndUploadThumbnail(
   imageUrl: string,
   videoId: string
-): Promise<string | null> {
+): Promise<ThumbnailResult> {
   if (!BLOB_READ_WRITE_TOKEN) {
     console.warn("BLOB_READ_WRITE_TOKEN is not configured, skipping thumbnail optimization");
-    return null;
+    return { thumbnailUrl: null, ogImageUrl: null };
   }
 
   try {
@@ -227,42 +236,76 @@ export async function optimizeAndUploadThumbnail(
     const metadata = await sharp(imageBuffer).metadata();
     console.log(`📊 Original image: ${metadata.width}x${metadata.height}, format: ${metadata.format}, size: ${imageBuffer.length} bytes`);
 
-    // Оптимизация изображения с использованием WebP для лучшего сжатия
-    // WebP обеспечивает на 25-35% меньший размер по сравнению с JPEG при том же качестве
-    const optimizedBuffer = await sharp(imageBuffer)
-      .resize(1080, null, {
-        fit: "inside",
-        withoutEnlargement: true, // Не увеличивать если изображение меньше
-      })
-      .webp({
-        quality: 80, // Оптимальный баланс между качеством и размером
-        effort: 6,   // Максимальное сжатие (0-6, где 6 = лучшее сжатие)
-      })
-      .toBuffer();
+    const timestamp = Date.now();
+    let thumbnailUrl: string | null = null;
+    let ogImageUrl: string | null = null;
 
-    console.log(`✅ Image optimized: ${optimizedBuffer.length} bytes (${Math.round((1 - optimizedBuffer.length / imageBuffer.length) * 100)}% reduction)`);
+    // 1. Создание вертикального превью (для видео)
+    try {
+      const verticalBuffer = await sharp(imageBuffer)
+        .resize(1080, null, {
+          fit: "inside",
+          withoutEnlargement: true,
+        })
+        .webp({
+          quality: 80,
+          effort: 6,
+        })
+        .toBuffer();
 
-    // Создание File для загрузки
-    const thumbnailBlob = new Blob([optimizedBuffer as any], { type: "image/webp" });
-    const thumbnailFile = new File([thumbnailBlob], `thumbnail-${videoId}.webp`, {
-      type: "image/webp",
-    });
+      const thumbnailBlob = new Blob([verticalBuffer as any], { type: "image/webp" });
+      const thumbnailFile = new File([thumbnailBlob], `thumbnail-${videoId}.webp`, {
+        type: "image/webp",
+      });
 
-    // Загрузка в Vercel Blob Storage
-    const thumbnailFilename = `thumbnails/${videoId}-${Date.now()}.webp`;
-    const uploadedBlob = await put(thumbnailFilename, thumbnailFile, {
-      access: "public",
-      token: BLOB_READ_WRITE_TOKEN,
-      contentType: "image/webp",
-    });
+      const thumbnailFilename = `thumbnails/${videoId}-${timestamp}.webp`;
+      const uploadedThumbnail = await put(thumbnailFilename, thumbnailFile, {
+        access: "public",
+        token: BLOB_READ_WRITE_TOKEN,
+        contentType: "image/webp",
+      });
 
-    console.log(`✅ Thumbnail optimized and uploaded: ${uploadedBlob.url}`);
+      thumbnailUrl = uploadedThumbnail.url;
+      console.log(`✅ Vertical thumbnail uploaded: ${thumbnailUrl}`);
+    } catch (error) {
+      console.error("❌ Failed to create vertical thumbnail:", error);
+    }
 
-    return uploadedBlob.url;
+    // 2. Создание горизонтального превью для og:image (1200x630)
+    try {
+      const ogImageBuffer = await sharp(imageBuffer)
+        .resize(1200, 630, {
+          fit: "cover", // Обрезаем изображение чтобы заполнить весь размер
+          position: "center", // Центрируем при обрезке
+        })
+        .jpeg({
+          quality: 85, // JPEG для лучшей совместимости с og:image
+          mozjpeg: true, // Используем mozjpeg для лучшего сжатия
+        })
+        .toBuffer();
+
+      const ogImageBlob = new Blob([ogImageBuffer as any], { type: "image/jpeg" });
+      const ogImageFile = new File([ogImageBlob], `og-image-${videoId}.jpg`, {
+        type: "image/jpeg",
+      });
+
+      const ogImageFilename = `og-images/${videoId}-${timestamp}.jpg`;
+      const uploadedOgImage = await put(ogImageFilename, ogImageFile, {
+        access: "public",
+        token: BLOB_READ_WRITE_TOKEN,
+        contentType: "image/jpeg",
+      });
+
+      ogImageUrl = uploadedOgImage.url;
+      console.log(`✅ OG image (1200x630) uploaded: ${ogImageUrl}`);
+    } catch (error) {
+      console.error("❌ Failed to create OG image:", error);
+    }
+
+    return { thumbnailUrl, ogImageUrl };
   } catch (error) {
     console.error("❌ Failed to optimize thumbnail:", error);
-    // Возвращаем null вместо ошибки, чтобы не блокировать создание видео
-    return null;
+    return { thumbnailUrl: null, ogImageUrl: null };
   }
 }
 

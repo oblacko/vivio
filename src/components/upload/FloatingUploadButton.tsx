@@ -14,13 +14,18 @@ import { useAuth } from "@/lib/hooks/useAuth";
 
 export default function FloatingUploadButton() {
   const { isOpen, openUpload, closeUpload } = useUpload();
-  const { isLoading } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth();
 
   const handleClick = () => {
     openUpload();
   };
 
   if (isLoading) {
+    return null;
+  }
+
+  // Скрываем кнопку для неавторизованных пользователей
+  if (!isAuthenticated) {
     return null;
   }
 

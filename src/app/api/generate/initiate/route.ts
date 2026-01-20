@@ -5,6 +5,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/db/client";
 import { grokClient } from "@/lib/grok/client";
 import { getPromptForCategory, DEFAULT_PROMPT } from "@/lib/grok/prompts";
+import { auth } from "@/lib/auth";
 
 const initiateSchema = z.object({
   challengeId: z.string().min(1).optional(),
@@ -17,6 +18,55 @@ const initiateSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
+    // Проверка авторизации
+    const session = await auth();
+    if (!session?.user) {
+      return NextResponse.json(
+        { error: "Необходима авторизация для создания видео" },
+        { status: 401 }
+      );
+    }
+
+    // Получение пользователя с балансом
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { id: true, balance: true },
+    });
+
+    if (!user) {
+      return NextResponse.json(
+        { error: "Пользователь не найден" },
+        { status: 404 }
+      );
+    }
+
+    // Получение настроек приложения (стоимость генерации)
+    let settings = await prisma.appSettings.findUnique({
+      where: { id: "singleton" },
+    });
+
+    if (!settings) {
+      // Создание дефолтных настроек если их нет
+      settings = await prisma.appSettings.create({
+        data: {
+          id: "singleton",
+          generationCost: 20,
+        },
+      });
+    }
+
+    // Проверка баланса
+    if (user.balance < settings.generationCost) {
+      return NextResponse.json(
+        { 
+          error: "Недостаточно кредитов для генерации видео",
+          required: settings.generationCost,
+          current: user.balance,
+        },
+        { status: 402 }
+      );
+    }
+
     const body = await request.json();
     console.log("📨 API /generate/initiate received body:", JSON.stringify(body, null, 2));
     console.log("📨 Raw challengeId from request:", body.challengeId, "type:", typeof body.challengeId);
@@ -85,10 +135,8 @@ export async function POST(request: NextRequest) {
       estimatedTime: 30,
     };
 
-    // Добавление опциональных полей с правильной типизацией
-    if (validated.userId) {
-      jobData.userId = validated.userId;
-    }
+    // Добавление userId из сессии
+    jobData.userId = user.id;
     if (validated.challengeId && validated.challengeId.trim()) {
       jobData.challengeId = validated.challengeId;
     }

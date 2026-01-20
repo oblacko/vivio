@@ -50,8 +50,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://vivio.vercel.app';
   const videoUrl = `${baseUrl}/v/${video.id}`;
   
-  // Используем thumbnailUrl для превью
-  const previewImage = video.thumbnailUrl || `${baseUrl}/api/og?id=${video.id}`;
+  // Используем ogImageUrl для превью (горизонтальное 1200x630), fallback на thumbnailUrl или API
+  const previewImage = video.ogImageUrl || video.thumbnailUrl || `${baseUrl}/api/og?id=${video.id}`;
+  const isOgImage = !!video.ogImageUrl; // Определяем, используется ли горизонтальное превью
 
   return {
     title: videoTitle,
@@ -67,10 +68,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       images: [
         {
           url: previewImage,
-          width: 1200,
-          height: 630,
+          width: isOgImage ? 1200 : (video.thumbnailUrl ? undefined : 1200),
+          height: isOgImage ? 630 : (video.thumbnailUrl ? undefined : 630),
           alt: videoTitle,
-          type: 'image/jpeg',
+          type: isOgImage ? 'image/jpeg' : (video.thumbnailUrl ? 'image/webp' : 'image/jpeg'),
         }
       ],
       videos: [
@@ -99,9 +100,17 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     other: {
       // Open Graph дополнительные
       'og:image': previewImage,
-      'og:image:width': '1200',
-      'og:image:height': '630',
-      'og:image:type': 'image/jpeg',
+      ...(isOgImage ? {
+        'og:image:width': '1200',
+        'og:image:height': '630',
+        'og:image:type': 'image/jpeg',
+      } : video.thumbnailUrl ? {
+        'og:image:type': 'image/webp',
+      } : {
+        'og:image:width': '1200',
+        'og:image:height': '630',
+        'og:image:type': 'image/jpeg',
+      }),
       
       // Видео теги
       'og:video': video.videoUrl,

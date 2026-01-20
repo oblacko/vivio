@@ -35,25 +35,31 @@ enum UserRole {
   ADMIN
 }
 
+enum TransactionType {
+  DEBIT
+  CREDIT
+}
+
 model User {
   id            String    @id @default(cuid())
   name          String?
   email         String?   @unique
   emailVerified DateTime?
   image         String?
-  password      String?   // Хеш пароля для email/password регистрации
+  password      String? // Хеш пароля для email/password регистрации
   bio           String?   @db.Text
-  socialLinks   Json?     // { twitter?: string, instagram?: string, etc }
+  socialLinks   Json? // { twitter?: string, instagram?: string, etc }
   role          UserRole  @default(USER)
   isPublic      Boolean   @default(true)
   balance       Float     @default(0)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  videos        Video[]
-  generationJobs GenerationJob[]
-  accounts      Account[]
-  sessions      Session[]
+  videos            Video[]
+  generationJobs    GenerationJob[]
+  accounts          Account[]
+  sessions          Session[]
+  creditTransactions CreditTransaction[]
 
   @@map("users")
 }
@@ -99,43 +105,43 @@ model VerificationToken {
 }
 
 model Challenge {
-  id              String    @id @default(cuid())
-  title           String
-  description     String?
-  category        ChallengeCategory
-  thumbnailUrl    String?
-  promptTemplate  String    // Шаблон промпта для этой категории
-  participantCount Int      @default(0)
-  isActive        Boolean   @default(true)
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  id               String            @id @default(cuid())
+  title            String
+  description      String?
+  category         ChallengeCategory
+  thumbnailUrl     String?
+  promptTemplate   String // Шаблон промпта для этой категории
+  participantCount Int               @default(0)
+  isActive         Boolean           @default(true)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
 
-  videos          Video[]
-  generationJobs  GenerationJob[]
+  videos         Video[]
+  generationJobs GenerationJob[]
 
   @@unique([title])
   @@map("challenges")
 }
 
 model GenerationJob {
-  id              String    @id @default(cuid())
-  userId          String?
-  challengeId     String?
-  externalJobId   String?   // ID задачи в Grok API (taskId)
-  imageUrl        String
-  prompt          String
-  status          JobStatus @default(QUEUED)
-  progress        Int       @default(0) // 0-100
-  duration        Int       @default(6) // Фиксированная длительность 6 секунд
-  errorMessage    String?
-  estimatedTime   Int?      // Оценка времени в секундах
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-  completedAt     DateTime?
+  id            String    @id @default(cuid())
+  userId        String?
+  challengeId   String?
+  externalJobId String? // ID задачи в Grok API (taskId)
+  imageUrl      String
+  prompt        String
+  status        JobStatus @default(QUEUED)
+  progress      Int       @default(0) // 0-100
+  duration      Int       @default(6) // Фиксированная длительность 6 секунд
+  errorMessage  String?
+  estimatedTime Int? // Оценка времени в секундах
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  completedAt   DateTime?
 
-  user            User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
-  challenge       Challenge? @relation(fields: [challengeId], references: [id], onDelete: Cascade)
-  video           Video?
+  user      User?      @relation(fields: [userId], references: [id], onDelete: SetNull)
+  challenge Challenge? @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  video     Video?
 
   @@index([userId])
   @@index([challengeId])
@@ -145,26 +151,27 @@ model GenerationJob {
 }
 
 model Video {
-  id              String      @id @default(cuid())
-  jobId           String      @unique
-  userId          String?
-  challengeId     String?
-  videoUrl        String      // URL в Vercel Blob Storage
-  thumbnailUrl    String?
-  duration        Int         @default(6) // 6 секунд
-  quality         VideoQuality @default(HD)
-  likesCount      Int         @default(0)
-  viewsCount      Int         @default(0)
-  shareCount      Int         @default(0) // Количество шерингов
-  referrerData    Json?       // {source: string, count: number}[]
-  isPublic        Boolean     @default(true)
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
+  id           String       @id @default(cuid())
+  jobId        String       @unique
+  userId       String?
+  challengeId  String?
+  videoUrl     String // URL в Vercel Blob Storage
+  thumbnailUrl String? // Вертикальное превью для видео
+  ogImageUrl   String? // Горизонтальное превью 1200x630 для og:image
+  duration     Int          @default(6) // 6 секунд
+  quality      VideoQuality @default(HD)
+  likesCount   Int          @default(0)
+  viewsCount   Int          @default(0)
+  shareCount   Int          @default(0) // Количество шерингов
+  referrerData Json? // {source: string, count: number}[]
+  isPublic     Boolean      @default(true)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
 
-  user            User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
-  challenge       Challenge?  @relation(fields: [challengeId], references: [id], onDelete: Cascade)
-  job             GenerationJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
-  shares          VideoShare[]
+  user      User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  challenge Challenge?    @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  job       GenerationJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  shares    VideoShare[]
 
   @@index([userId])
   @@index([challengeId])
@@ -173,16 +180,40 @@ model Video {
 }
 
 model VideoShare {
-  id          String   @id @default(cuid())
-  videoId     String
-  source      String?  // vk, telegram, facebook, twitter, direct
-  referrer    String?  // HTTP Referer
-  userAgent   String?  // Для определения устройства
-  createdAt   DateTime @default(now())
-  
-  video       Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
-  
+  id        String   @id @default(cuid())
+  videoId   String
+  source    String? // vk, telegram, facebook, twitter, direct
+  referrer  String? // HTTP Referer
+  userAgent String? // Для определения устройства
+  createdAt DateTime @default(now())
+
+  video Video @relation(fields: [videoId], references: [id], onDelete: Cascade)
+
   @@index([videoId])
   @@index([source])
   @@map("video_shares")
+}
+
+model CreditTransaction {
+  id          String          @id @default(cuid())
+  userId      String
+  type        TransactionType
+  amount      Float
+  description String?
+  createdAt   DateTime        @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
+  @@index([type])
+  @@map("credit_transactions")
+}
+
+model AppSettings {
+  id            String   @id @default("singleton")
+  generationCost Float    @default(20)
+  updatedAt     DateTime @updatedAt
+
+  @@map("app_settings")
 }

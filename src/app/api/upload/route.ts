@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { put, del } from "@vercel/blob";
 import { getFileAsBlob } from "@/lib/storage/railway-storage";
+import { auth } from "@/lib/auth";
 
 export const runtime = "nodejs";
 
@@ -65,6 +66,15 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    // Проверка авторизации
+    const session = await auth();
+    if (!session?.user) {
+      return NextResponse.json(
+        { error: "Необходима авторизация для загрузки файлов" },
+        { status: 401 }
+      );
+    }
+
     if (!BLOB_READ_WRITE_TOKEN) {
       return NextResponse.json(
         { error: "Blob storage not configured" },

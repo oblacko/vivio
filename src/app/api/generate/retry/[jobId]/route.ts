@@ -94,13 +94,20 @@ export async function POST(
 
     // Оптимизация и загрузка thumbnail из исходного изображения
     let thumbnailUrl: string | null = null;
+    let ogImageUrl: string | null = null;
     try {
       if (job.imageUrl) {
         console.log(`🖼️ Optimizing thumbnail from original image: ${job.imageUrl}`);
-        thumbnailUrl = await optimizeAndUploadThumbnail(job.imageUrl, job.id);
+        const thumbnailResult = await optimizeAndUploadThumbnail(job.imageUrl, job.id);
+        thumbnailUrl = thumbnailResult.thumbnailUrl;
+        ogImageUrl = thumbnailResult.ogImageUrl;
         if (thumbnailUrl) {
           console.log(`✅ Thumbnail optimized and uploaded: ${thumbnailUrl}`);
-        } else {
+        }
+        if (ogImageUrl) {
+          console.log(`✅ OG image optimized and uploaded: ${ogImageUrl}`);
+        }
+        if (!thumbnailUrl && !ogImageUrl) {
           console.warn(`⚠️ Thumbnail optimization failed, continuing without thumbnail`);
         }
       } else {
@@ -125,6 +132,7 @@ export async function POST(
       userId: job.userId || null,
       videoUrl: blobResult.url,
       thumbnailUrl: thumbnailUrl,
+      ogImageUrl: ogImageUrl,
       duration: 6,
       quality: "HD",
     };
