@@ -23,11 +23,18 @@ export async function GET(request: Request, { params }: RouteParams) {
             image: true,
           },
         },
-        challenge: {
+        vibe: {
           select: {
             id: true,
             title: true,
             category: true,
+          },
+          include: {
+            tags: {
+              include: {
+                tag: true,
+              },
+            },
           },
         },
       },
@@ -40,6 +47,15 @@ export async function GET(request: Request, { params }: RouteParams) {
       );
     }
 
+    // Преобразуем теги в удобный формат
+    const videoWithTags = {
+      ...video,
+      vibe: video.vibe ? {
+        ...video.vibe,
+        tags: video.vibe.tags.map((vt: any) => vt.tag),
+      } : undefined,
+    };
+
     // Увеличить счетчик просмотров
     await prisma.video.update({
       where: { id },
@@ -51,8 +67,8 @@ export async function GET(request: Request, { params }: RouteParams) {
     });
 
     return NextResponse.json({
-      ...video,
-      viewsCount: video.viewsCount + 1,
+      ...videoWithTags,
+      viewsCount: videoWithTags.viewsCount + 1,
     });
   } catch (error) {
     console.error("Get video error:", error);

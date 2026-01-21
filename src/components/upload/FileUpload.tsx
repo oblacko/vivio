@@ -22,7 +22,7 @@ import Cropper from "react-easy-crop";
 import { toast } from "sonner";
 import { useUploadImage } from "@/lib/queries/upload";
 import { useInitiateGeneration, useGenerationStatus } from "@/lib/queries/generation";
-import { useChallenges } from "@/lib/queries/challenges";
+import { useVibes } from "@/lib/queries/vibes";
 import { useAuth } from "@/lib/hooks/useAuth";
 
 interface FileUploadProps {
@@ -72,7 +72,7 @@ export function FileUpload({ onClose, defaultChallengeId }: FileUploadProps) {
   const uploadMutation = useUploadImage();
   const initiateMutation = useInitiateGeneration();
   const { data: generationStatus } = useGenerationStatus(jobId);
-  const { data: challenges = [] } = useChallenges();
+  const { data: vibes = [] } = useVibes();
 
   const handleFileSelection = (file: File) => {
     // Блокируем загрузку во время генерации
@@ -138,15 +138,15 @@ export function FileUpload({ onClose, defaultChallengeId }: FileUploadProps) {
     }
   }, [generationStatus]);
 
-  // Установка дефолтного челленджа при монтировании компонента
+  // Установка дефолтного вайба при монтировании компонента
   useEffect(() => {
-    if (defaultChallengeId && challenges.length > 0) {
-      const challengeExists = challenges.some(c => c.id === defaultChallengeId);
-      if (challengeExists) {
+    if (defaultChallengeId && vibes.length > 0) {
+      const vibeExists = vibes.some(v => v.id === defaultChallengeId);
+      if (vibeExists) {
         setSelectedChallengeId(defaultChallengeId);
       }
     }
-  }, [defaultChallengeId, challenges]);
+  }, [defaultChallengeId, vibes]);
 
   // Запуск генерации
   const handleStartGeneration = async () => {
@@ -156,7 +156,7 @@ export function FileUpload({ onClose, defaultChallengeId }: FileUploadProps) {
       setGenerationError(null);
       const result = await initiateMutation.mutateAsync({
         imageUrl: uploadedImageUrl,
-        challengeId: selectedChallengeId || undefined,
+        vibeId: selectedChallengeId || undefined,
         userId: user?.id,
       });
 
@@ -462,17 +462,17 @@ export function FileUpload({ onClose, defaultChallengeId }: FileUploadProps) {
                       <SelectValue placeholder="Без челленджа" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="none">Без челленджа</SelectItem>
-                      {challenges.map((challenge) => (
-                        <SelectItem key={challenge.id} value={challenge.id}>
-                          {challenge.title} ({challenge.participantCount} участников)
+                      <SelectItem value="none">Без вайба</SelectItem>
+                      {vibes.map((vibe) => (
+                        <SelectItem key={vibe.id} value={vibe.id}>
+                          {vibe.title} ({vibe.participantCount} участников)
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                   {selectedChallengeId && (
                     <p className="text-xs text-gray-500">
-                      {challenges.find(c => c.id === selectedChallengeId)?.description}
+                      {vibes.find(v => v.id === selectedChallengeId)?.description}
                     </p>
                   )}
                 </div>

@@ -63,7 +63,7 @@ export function VideoPageClient({ videoId }: VideoPageClientProps) {
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
-      <Link href={`/challenges/${video.challengeId}`}>
+      <Link href={video.vibeId ? `/vibes/${video.vibeId}` : "/"}>
         <Button variant="ghost" className="mb-4">
           <ArrowLeft className="w-4 h-4 mr-2" />
           Назад к тренду
@@ -85,10 +85,10 @@ export function VideoPageClient({ videoId }: VideoPageClientProps) {
         <div className="space-y-6">
           <div>
             <h1 className="text-2xl font-bold mb-2">
-              {video.challenge?.title || "Видео"}
+              {video.vibe?.title || "Видео"}
             </h1>
             <Badge variant="outline" className="mb-4">
-              {video.challenge?.category}
+              {video.vibe?.category || "Без категории"}
             </Badge>
           </div>
 
@@ -151,7 +151,7 @@ export function VideoPageClient({ videoId }: VideoPageClientProps) {
 
             <ShareDialog
               videoId={videoId}
-              title={video?.challenge?.title || "Vivio Video"}
+              title={video?.vibe?.title || "Vivio Video"}
             >
               <Button variant="outline" className="flex-1">
                 <Share2 className="w-4 h-4 mr-2" />

@@ -20,7 +20,7 @@ async function getVideo(id: string) {
           image: true,
         },
       },
-      challenge: {
+      vibe: {
         select: {
           id: true,
           title: true,
@@ -43,12 +43,12 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     };
   }
 
-  const videoTitle = video.challenge?.title || "Видео на Vivio";
+  const videoTitle = video.vibe?.title || "Видео на vibeo.fun";
   const videoDescription = 
-    video.challenge?.description || 
-    `Смотрите это ${video.duration}-секундное видео на Vivio${video.user?.name ? `. Создано ${video.user.name}` : ''}`;
+    video.vibe?.description || 
+    `Смотрите это ${video.duration}-секундное видео на vibeo.fun${video.user?.name ? `. Создано ${video.user.name}` : ''}`;
   
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://vivio.vercel.app';
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://vibeo.fun';
   const videoUrl = `${baseUrl}/videos/${video.id}`;
   
   // Используем ogImageUrl для превью (горизонтальное 1200x630), fallback на thumbnailUrl или API
@@ -64,7 +64,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       title: videoTitle,
       description: videoDescription,
       url: videoUrl,
-      siteName: 'Vivio',
+      siteName: 'vibeo.fun',
       locale: 'ru_RU',
       images: [
         {
@@ -89,7 +89,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       card: 'player',
       title: videoTitle,
       description: videoDescription,
-      site: '@vivio',
+      site: '@vibeofun',
       images: [previewImage],
       players: {
         playerUrl: video.videoUrl,

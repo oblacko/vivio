@@ -15,13 +15,13 @@ import Image from "next/image";
 interface UploadSheetProps {
   onUploadComplete: (imageUrl: string) => void;
   trigger?: React.ReactNode;
-  challengeId?: string;
+  vibeId?: string;
 }
 
 export function UploadSheet({
   onUploadComplete,
   trigger,
-  challengeId,
+  vibeId,
 }: UploadSheetProps) {
   const [open, setOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);

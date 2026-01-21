@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
             fontSize: 60,
             fontWeight: 700,
             fontFamily: 'system-ui, sans-serif',
@@ -36,15 +36,15 @@ export async function GET(request: NextRequest) {
           >
             <div
               style={{
-                fontSize: 120,
+                fontSize: 100,
                 fontWeight: 'bold',
                 color: 'white',
                 marginBottom: 40,
-                textShadow: '0 8px 16px rgba(0,0,0,0.4)',
-                letterSpacing: '-2px',
+                textShadow: '0 8px 16px rgba(0,0,0,0.3)',
+                letterSpacing: '-1px',
               }}
             >
-              Vivio
+              vibeo.fun
             </div>
             <div
               style={{

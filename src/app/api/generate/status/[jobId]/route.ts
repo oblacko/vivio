@@ -23,7 +23,7 @@ export async function GET(
       where: { id: jobId },
       include: {
         video: true,
-        challenge: true,
+        vibe: true,
       },
     });
 
@@ -122,8 +122,8 @@ export async function GET(
                 quality: "HD",
               };
               
-              if (job.challengeId) {
-                videoData.challengeId = job.challengeId;
+              if (job.vibeId) {
+                videoData.vibeId = job.vibeId;
               }
               
               const video = await prisma.video.create({
@@ -140,10 +140,10 @@ export async function GET(
                 },
               });
 
-              // Увеличение participantCount в Challenge (только если есть challengeId)
-              if (job.challengeId) {
-                await prisma.challenge.update({
-                  where: { id: job.challengeId },
+              // Увеличение participantCount в Vibe (только если есть vibeId)
+              if (job.vibeId) {
+                await prisma.vibe.update({
+                  where: { id: job.vibeId },
                   data: {
                     participantCount: {
                       increment: 1,

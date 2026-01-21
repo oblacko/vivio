@@ -4,9 +4,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
 import { auth } from "@/lib/auth";
 import { z } from "zod";
-import { setChallengesCache, deleteCache } from "@/lib/redis/client";
+import { setVibesCache, deleteCache } from "@/lib/redis/client";
 
-const createChallengeSchema = z.object({
+const createVibeSchema = z.object({
   title: z.string().min(1, "Название обязательно"),
   description: z.string().optional(),
   category: z.enum(["MONUMENTS", "PETS", "FACES", "SEASONAL"]),
@@ -36,31 +36,31 @@ export async function POST(request: NextRequest) {
 
     // Валидация данных
     const body = await request.json();
-    const validatedData = createChallengeSchema.parse(body);
+    const validatedData = createVibeSchema.parse(body);
 
     // Проверка на дубликаты
-    const existingChallenge = await prisma.challenge.findUnique({
+    const existingVibe = await prisma.vibe.findUnique({
       where: { title: validatedData.title },
     });
 
-    if (existingChallenge) {
+    if (existingVibe) {
       return NextResponse.json(
-        { error: "Челлендж с таким названием уже существует" },
+        { error: "Вайб с таким названием уже существует" },
         { status: 400 }
       );
     }
 
-    // Создание челленджа
-    const challenge = await prisma.challenge.create({
+    // Создание вайба
+    const vibe = await prisma.vibe.create({
       data: validatedData,
     });
 
     // Инвалидация кеша
-    await deleteCache("challenges:list");
+    await deleteCache("vibes:list");
 
-    return NextResponse.json(challenge, { status: 201 });
+    return NextResponse.json(vibe, { status: 201 });
   } catch (error) {
-    console.error("Create challenge error:", error);
+    console.error("Create vibe error:", error);
     
     if (error instanceof z.ZodError) {
       return NextResponse.json(
@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         error:
-          error instanceof Error ? error.message : "Failed to create challenge",
+          error instanceof Error ? error.message : "Failed to create vibe",
       },
       { status: 500 }
     );

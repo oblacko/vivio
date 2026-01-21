@@ -8,7 +8,7 @@ export interface Video {
   likesCount: number;
   viewsCount: number;
   userId: string | null;
-  challengeId: string;
+  vibeId: string | null;
   createdAt: Date;
 }
 

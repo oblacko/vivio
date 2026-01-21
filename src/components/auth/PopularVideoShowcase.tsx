@@ -14,7 +14,7 @@ interface Video {
   user?: {
     name?: string | null;
   } | null;
-  challenge?: {
+  vibe?: {
     title?: string;
   } | null;
   likesCount: number;
@@ -141,9 +141,9 @@ export function PopularVideoShowcase() {
             <span>Популярное видео</span>
           </div>
           
-          {video.challenge?.title && (
+          {video.vibe?.title && (
             <h3 className="text-white font-semibold text-lg">
-              {video.challenge.title}
+              {video.vibe.title}
             </h3>
           )}
           

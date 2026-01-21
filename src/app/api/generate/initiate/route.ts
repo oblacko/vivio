@@ -8,12 +8,12 @@ import { getPromptForCategory, DEFAULT_PROMPT } from "@/lib/grok/prompts";
 import { auth } from "@/lib/auth";
 
 const initiateSchema = z.object({
-  challengeId: z.string().min(1).optional(),
+  vibeId: z.string().min(1).optional(),
   imageUrl: z.string().url(),
   userId: z.string().optional(),
 }).transform((data) => ({
   ...data,
-  challengeId: data.challengeId || undefined, // Нормализуем пустые строки в undefined
+  vibeId: data.vibeId || undefined, // Нормализуем пустые строки в undefined
 }));
 
 export async function POST(request: NextRequest) {
@@ -69,56 +69,56 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
     console.log("📨 API /generate/initiate received body:", JSON.stringify(body, null, 2));
-    console.log("📨 Raw challengeId from request:", body.challengeId, "type:", typeof body.challengeId);
+    console.log("📨 Raw vibeId from request:", body.vibeId, "type:", typeof body.vibeId);
 
     const validated = initiateSchema.parse(body);
     console.log("✅ Validated data:", JSON.stringify(validated, null, 2));
-    console.log("✅ Validated challengeId:", validated.challengeId, "type:", typeof validated.challengeId);
+    console.log("✅ Validated vibeId:", validated.vibeId, "type:", typeof validated.vibeId);
 
     let promptTemplate;
 
-    if (validated.challengeId) {
-      // Получение челленджа из БД
-      console.log("🔍 Поиск челленджа с ID:", validated.challengeId);
-      console.log("🔍 ChallengeId is truthy:", !!validated.challengeId);
-      console.log("🔍 ChallengeId length:", validated.challengeId.length);
+    if (validated.vibeId) {
+      // Получение вайба из БД
+      console.log("🔍 Поиск вайба с ID:", validated.vibeId);
+      console.log("🔍 VibeId is truthy:", !!validated.vibeId);
+      console.log("🔍 VibeId length:", validated.vibeId.length);
 
       try {
-        const challenge = await prisma.challenge.findUnique({
-          where: { id: validated.challengeId },
+        const vibe = await prisma.vibe.findUnique({
+          where: { id: validated.vibeId },
         });
 
-        console.log("✅ Результат запроса:", challenge ? `Найден: ${challenge.title}` : "Челлендж не найден");
-        console.log("✅ Challenge object:", challenge ? JSON.stringify({
-          id: challenge.id,
-          title: challenge.title,
-          isActive: challenge.isActive,
-          promptTemplate: challenge.promptTemplate?.substring(0, 100) + "..."
+        console.log("✅ Результат запроса:", vibe ? `Найден: ${vibe.title}` : "Вайб не найден");
+        console.log("✅ Vibe object:", vibe ? JSON.stringify({
+          id: vibe.id,
+          title: vibe.title,
+          isActive: vibe.isActive,
+          promptTemplate: vibe.promptTemplate?.substring(0, 100) + "..."
         }, null, 2) : "null");
 
-        if (!challenge) {
-          console.warn("⚠️ Челлендж не найден, игнорируем challengeId");
-          // Убираем challengeId из валидированных данных
-          validated.challengeId = undefined;
+        if (!vibe) {
+          console.warn("⚠️ Вайб не найден, игнорируем vibeId");
+          // Убираем vibeId из валидированных данных
+          validated.vibeId = undefined;
           promptTemplate = DEFAULT_PROMPT;
-        } else if (!challenge.isActive) {
-          console.warn("⚠️ Челлендж неактивен, игнорируем challengeId");
-          // Убираем challengeId из валидированных данных
-          validated.challengeId = undefined;
+        } else if (!vibe.isActive) {
+          console.warn("⚠️ Вайб неактивен, игнорируем vibeId");
+          // Убираем vibeId из валидированных данных
+          validated.vibeId = undefined;
           promptTemplate = DEFAULT_PROMPT;
         } else {
-          // Использование промпта из челленджа
+          // Использование промпта из вайба
           promptTemplate = {
-            prompt: challenge.promptTemplate,
+            prompt: vibe.promptTemplate,
           };
-          console.log("✅ Используется промпт из челленджа ID:", validated.challengeId);
+          console.log("✅ Используется промпт из вайба ID:", validated.vibeId);
         }
       } catch (dbError) {
         console.error("❌ Ошибка при запросе к БД:", dbError);
-        // В случае ошибки БД игнорируем challengeId
-        validated.challengeId = undefined;
+        // В случае ошибки БД игнорируем vibeId
+        validated.vibeId = undefined;
         promptTemplate = DEFAULT_PROMPT;
-        console.log("⚠️ Игнорируем challengeId из-за ошибки БД");
+        console.log("⚠️ Игнорируем vibeId из-за ошибки БД");
       }
     } else {
       // Использование дефолтного промпта
@@ -137,8 +137,8 @@ export async function POST(request: NextRequest) {
 
     // Добавление userId из сессии
     jobData.userId = user.id;
-    if (validated.challengeId && validated.challengeId.trim()) {
-      jobData.challengeId = validated.challengeId;
+    if (validated.vibeId && validated.vibeId.trim()) {
+      jobData.vibeId = validated.vibeId;
     }
 
     const job = await prisma.generationJob.create({

@@ -28,7 +28,7 @@ describe('/api/videos GET', () => {
         likesCount: 10,
         viewsCount: 100,
         userId: 'user1',
-        challengeId: 'challenge1',
+        vibeId: 'vibe1',
         createdAt: new Date(),
         isPublic: true,
         user: {
@@ -80,7 +80,7 @@ describe('/api/videos GET', () => {
     })
   })
 
-  it('should filter by challengeId when provided', async () => {
+  it('should filter by vibeId when provided', async () => {
     const mockVideos = [
       {
         id: '1',
@@ -104,7 +104,7 @@ describe('/api/videos GET', () => {
 
     mockPrisma.video.findMany.mockResolvedValue(mockVideos)
 
-    const request = new NextRequest('http://localhost:3000/api/videos?challengeId=challenge1')
+    const request = new NextRequest('http://localhost:3000/api/videos?vibeId=vibe1')
     const response = await GET(request)
 
     expect(response.status).toBe(200)

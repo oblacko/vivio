@@ -1,21 +1,31 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ImageToVideoUploader } from "@/components/upload/ImageToVideoUploader";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { useChallenges } from "@/lib/queries/challenges";
+import { useVibes } from "@/lib/queries/vibes";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { ArrowLeft, Sparkles, Lock, LogIn } from "lucide-react";
 import Link from "next/link";
 
-export default function CreatePage() {
-  const [selectedChallengeId, setSelectedChallengeId] = useState<string | null>(null);
+function CreatePageContent() {
+  const searchParams = useSearchParams();
+  const vibeIdFromQuery = searchParams.get("vibeId");
+  
+  const [selectedVibeId, setSelectedVibeId] = useState<string | null>(vibeIdFromQuery);
   const router = useRouter();
-  const { data: challenges, isLoading, error } = useChallenges();
+  const { data: vibes, isLoading, error } = useVibes();
   const { isAuthenticated, isLoading: authLoading } = useAuth();
+
+  // Устанавливаем вайб из query параметра при загрузке
+  useEffect(() => {
+    if (vibeIdFromQuery) {
+      setSelectedVibeId(vibeIdFromQuery);
+    }
+  }, [vibeIdFromQuery]);
 
   const handleComplete = (videoUrl: string, videoId: string) => {
     // Опционально: перенаправить на страницу видео
@@ -23,15 +33,15 @@ export default function CreatePage() {
   };
 
   // Debug logging
-  console.log("CreatePage state:", { isLoading, error, challengesCount: challenges?.length });
+  console.log("CreatePage state:", { isLoading, error, vibesCount: vibes?.length });
 
   if (error) {
     console.error("CreatePage error:", error);
-    // Продолжаем с пустым массивом трендов
+    // Продолжаем с пустым массивом вайбов
   }
 
-  // Используем challenges или пустой массив
-  const challengesList = challenges || [];
+  // Используем vibes или пустой массив
+  const vibesList = vibes || [];
 
   // Проверка авторизации
   if (authLoading) {
@@ -105,25 +115,25 @@ export default function CreatePage() {
         <div className="space-y-6">
           <div>
             <label className="text-sm font-medium mb-2 block">
-              Тренд (опционально)
+              Вайб (опционально)
             </label>
             <Select
-              value={selectedChallengeId || "none"}
-              onValueChange={(value) => setSelectedChallengeId(value === "none" ? null : value)}
+              value={selectedVibeId || "none"}
+              onValueChange={(value) => setSelectedVibeId(value === "none" ? null : value)}
             >
               <SelectTrigger className="w-full max-w-md">
-                <SelectValue placeholder="Выберите тренд или оставьте пустым" />
+                <SelectValue placeholder="Выберите вайб или оставьте пустым" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="none">Без тренда</SelectItem>
+                <SelectItem value="none">Без вайба</SelectItem>
                 {isLoading ? (
                   <SelectItem value="loading" disabled>
-                    Загрузка трендов...
+                    Загрузка вайбов...
                   </SelectItem>
                 ) : (
-                  challengesList.map((challenge) => (
-                    <SelectItem key={challenge.id} value={challenge.id}>
-                      {challenge.title} ({challenge.category})
+                  vibesList.map((vibe) => (
+                    <SelectItem key={vibe.id} value={vibe.id}>
+                      {vibe.title} ({vibe.category})
                     </SelectItem>
                   ))
                 )}
@@ -131,16 +141,16 @@ export default function CreatePage() {
             </Select>
           </div>
 
-          {selectedChallengeId && (() => {
-            const selectedChallenge = challengesList.find(c => c.id === selectedChallengeId);
-            return selectedChallenge ? (
+          {selectedVibeId && (() => {
+            const selectedVibe = vibesList.find(v => v.id === selectedVibeId);
+            return selectedVibe ? (
               <div className="bg-muted/50 p-4 rounded-lg max-w-md">
                 <div className="flex items-center gap-3">
                   <Sparkles className="w-5 h-5 text-primary" />
                   <div>
-                    <p className="font-medium">{selectedChallenge.title}</p>
+                    <p className="font-medium">{selectedVibe.title}</p>
                     <p className="text-sm text-muted-foreground">
-                      Категория: {selectedChallenge.category}
+                      Категория: {selectedVibe.category}
                     </p>
                   </div>
                 </div>
@@ -150,12 +160,27 @@ export default function CreatePage() {
 
           <div className="pt-4">
             <ImageToVideoUploader
-              challengeId={selectedChallengeId ?? undefined}
+              vibeId={selectedVibeId ?? undefined}
               onComplete={handleComplete}
             />
           </div>
         </div>
       </div>
     </main>
+  );
+}
+
+export default function CreatePage() {
+  return (
+    <Suspense fallback={
+      <main className="container mx-auto px-4 py-8 flex items-center justify-center min-h-[60vh]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Загрузка...</p>
+        </div>
+      </main>
+    }>
+      <CreatePageContent />
+    </Suspense>
   );
 }

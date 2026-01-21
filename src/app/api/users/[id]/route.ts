@@ -77,7 +77,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       },
       take: 20,
       include: {
-        challenge: {
+        vibe: {
           select: {
             id: true,
             title: true,

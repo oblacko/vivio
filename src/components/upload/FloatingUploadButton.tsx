@@ -11,10 +11,12 @@ import { GridPattern } from "@/components/ui/file-upload";
 import { Plus } from "lucide-react";
 import { useUpload } from "@/lib/contexts/upload-context";
 import { useAuth } from "@/lib/hooks/useAuth";
+import { usePathname } from "next/navigation";
 
 export default function FloatingUploadButton() {
   const { isOpen, openUpload, closeUpload } = useUpload();
   const { isAuthenticated, isLoading } = useAuth();
+  const pathname = usePathname();
 
   const handleClick = () => {
     openUpload();
@@ -26,6 +28,11 @@ export default function FloatingUploadButton() {
 
   // Скрываем кнопку для неавторизованных пользователей
   if (!isAuthenticated) {
+    return null;
+  }
+
+  // Скрываем кнопку в админ панели
+  if (pathname?.startsWith("/admin")) {
     return null;
   }
 

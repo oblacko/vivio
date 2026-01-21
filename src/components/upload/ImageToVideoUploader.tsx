@@ -27,12 +27,12 @@ import { cn } from "@/lib/utils";
 type UploadState = "idle" | "uploading" | "file-uploaded" | "processing" | "completed" | "error";
 
 interface ImageToVideoUploaderProps {
-  challengeId?: string;
+  vibeId?: string;
   onComplete?: (videoUrl: string, videoId: string) => void;
 }
 
 export function ImageToVideoUploader({
-  challengeId,
+  vibeId,
   onComplete,
 }: ImageToVideoUploaderProps) {
   const [state, setState] = useState<UploadState>("idle");
@@ -108,22 +108,22 @@ export function ImageToVideoUploader({
     if (!uploadedImageUrl) return;
 
     const payload = {
-      challengeId: challengeId || undefined,
+      vibeId: vibeId || undefined,
       imageUrl: uploadedImageUrl,
       userId: user?.id,
     };
 
     console.log("🚀 Отправка на обработку:", JSON.stringify(payload, null, 2));
     console.log("📋 Детали:", {
-      challengeId: challengeId || "не указан",
-      challengeIdType: typeof challengeId,
-      challengeIdLength: challengeId?.length,
+      vibeId: vibeId || "не указан",
+      vibeIdType: typeof vibeId,
+      vibeIdLength: vibeId?.length,
       imageUrl: uploadedImageUrl,
       fileName: selectedFile?.name,
       fileSize: selectedFile ? `${(selectedFile.size / 1024 / 1024).toFixed(2)} MB` : "неизвестно",
     });
-    console.log("🔍 Props challengeId:", challengeId);
-    console.log("🔍 Component state challengeId context:", "checking if challengeId prop is consistent");
+    console.log("🔍 Props vibeId:", vibeId);
+    console.log("🔍 Component state vibeId context:", "checking if vibeId prop is consistent");
 
     try {
       setState("processing");
@@ -148,7 +148,7 @@ export function ImageToVideoUploader({
         description: error instanceof Error ? error.message : "Попробуйте еще раз",
       });
     }
-  }, [challengeId, uploadedImageUrl, selectedFile, initiateMutation]);
+  }, [vibeId, uploadedImageUrl, selectedFile, initiateMutation]);
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     if (state !== "idle" && state !== "completed" && state !== "error") {

@@ -9,14 +9,16 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import Image from "next/image";
+import type { Tag } from "@/store/useVibeStore";
 
-interface ChallengeCardProps {
+interface VibeCardProps {
   id: string;
   title: string;
   description?: string | null;
   thumbnailUrl?: string | null;
   participantCount: number;
   category: string;
+  tags?: Tag[];
   user?: {
     id: string;
     name?: string | null;
@@ -24,27 +26,28 @@ interface ChallengeCardProps {
   } | null;
   likesCount?: number;
   viewsCount?: number;
-  isLiked?: boolean;
-  onLike?: () => void;
+  isFavorite?: boolean;
+  onToggleFavorite?: () => void;
   onShare?: () => void;
   className?: string;
 }
 
-export function ChallengeCard({
+export function VibeCard({
   id,
   title,
   description,
   thumbnailUrl,
   participantCount,
   category,
+  tags,
   user,
   likesCount = 0,
   viewsCount = 0,
-  isLiked = false,
-  onLike,
+  isFavorite = false,
+  onToggleFavorite,
   onShare,
   className,
-}: ChallengeCardProps) {
+}: VibeCardProps) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -54,7 +57,7 @@ export function ChallengeCard({
       className={cn("w-full", className)}
     >
       <Card className="overflow-hidden hover:shadow-lg transition-shadow">
-        <Link href={`/challenges/${id}`}>
+        <Link href={`/vibes/${id}`}>
           <div className="relative aspect-[9/16] w-full bg-muted">
             {thumbnailUrl ? (
               <Image
@@ -128,6 +131,22 @@ export function ChallengeCard({
               </div>
             </div>
 
+            {/* Теги */}
+            {tags && tags.length > 0 && (
+              <div className="flex flex-wrap gap-1">
+                {tags.slice(0, 3).map((tag) => (
+                  <Badge key={tag.id} variant="secondary" className="text-xs">
+                    {tag.name}
+                  </Badge>
+                ))}
+                {tags.length > 3 && (
+                  <Badge variant="secondary" className="text-xs">
+                    +{tags.length - 3}
+                  </Badge>
+                )}
+              </div>
+            )}
+
             <div className="flex items-center justify-between pt-2">
               {category && <Badge variant="outline">{category}</Badge>}
 
@@ -137,17 +156,17 @@ export function ChallengeCard({
                   size="icon"
                   onClick={(e) => {
                     e.preventDefault();
-                    onLike?.();
+                    onToggleFavorite?.();
                   }}
                   className={cn(
                     "h-8 w-8",
-                    isLiked && "text-red-500 hover:text-red-600"
+                    isFavorite && "text-red-500 hover:text-red-600"
                   )}
                 >
                   <Heart
                     className={cn(
                       "w-4 h-4",
-                      isLiked && "fill-current"
+                      isFavorite && "fill-current"
                     )}
                   />
                 </Button>

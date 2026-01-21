@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useChallengeStore } from "@/store/useChallengeStore";
+import { useVibeStore, type Tag } from "@/store/useVibeStore";
 
-export interface Challenge {
+export interface Vibe {
   id: string;
   title: string;
   description: string | null;
@@ -12,10 +12,11 @@ export interface Challenge {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+  tags?: Tag[];
 }
 
-// Mock challenges for development
-const mockChallenges: Challenge[] = [
+// Mock vibes for development
+const mockVibes: Vibe[] = [
   {
     id: "1",
     title: "Мои любимые питомцы",
@@ -66,27 +67,27 @@ const mockChallenges: Challenge[] = [
   },
 ];
 
-export function useChallenges() {
-  const { setChallenges } = useChallengeStore();
+export function useVibes() {
+  const { setVibes } = useVibeStore();
 
-  return useQuery<Challenge[]>({
-    queryKey: ["challenges"],
+  return useQuery<Vibe[]>({
+    queryKey: ["vibes"],
     queryFn: async () => {
       try {
-        const response = await fetch("/api/challenges");
+        const response = await fetch("/api/vibes");
         if (!response.ok) {
-          throw new Error("Failed to fetch challenges");
+          throw new Error("Failed to fetch vibes");
         }
         const data = await response.json();
         // Если API вернул данные, используем их, иначе mock данные
-        const challenges = data.length > 0 ? data : mockChallenges;
-        setChallenges(challenges);
-        return challenges;
+        const vibes = data.length > 0 ? data : mockVibes;
+        setVibes(vibes);
+        return vibes;
       } catch (error) {
         console.warn("API not available, using mock data:", error);
         // Возвращаем mock данные при ошибке API
-        setChallenges(mockChallenges);
-        return mockChallenges;
+        setVibes(mockVibes);
+        return mockVibes;
       }
     },
     staleTime: 0, // Отключаем кеширование для разработки
@@ -94,28 +95,28 @@ export function useChallenges() {
     retry: 1,
     retryDelay: 1000,
     // Добавляем начальные данные
-    initialData: mockChallenges,
+    initialData: mockVibes,
   });
 }
 
-export function useChallenge(id: string) {
-  return useQuery<Challenge>({
-    queryKey: ["challenge", id],
+export function useVibe(id: string) {
+  return useQuery<Vibe>({
+    queryKey: ["vibe", id],
     queryFn: async () => {
       try {
-        const response = await fetch(`/api/challenges/${id}`);
+        const response = await fetch(`/api/vibes/${id}`);
         if (!response.ok) {
-          throw new Error("Failed to fetch challenge");
+          throw new Error("Failed to fetch vibe");
         }
         return response.json();
       } catch (error) {
-        console.warn("API not available, using mock data for challenge:", id);
-        // Возвращаем mock данные для конкретного челленджа
-        const challenge = mockChallenges.find(c => c.id === id);
-        if (!challenge) {
-          throw new Error("Challenge not found");
+        console.warn("API not available, using mock data for vibe:", id);
+        // Возвращаем mock данные для конкретного вайба
+        const vibe = mockVibes.find(v => v.id === id);
+        if (!vibe) {
+          throw new Error("Vibe not found");
         }
-        return challenge;
+        return vibe;
       }
     },
   });

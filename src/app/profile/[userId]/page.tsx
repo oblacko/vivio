@@ -253,9 +253,9 @@ export default function ProfilePage() {
                     autoPlayOnHover={true}
                   />
                   <div className="mt-2 space-y-1">
-                    {video.challenge && (
+                    {video.vibe && (
                       <Badge variant="outline" className="text-xs">
-                        {video.challenge.category}
+                        {video.vibe.category}
                       </Badge>
                     )}
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">

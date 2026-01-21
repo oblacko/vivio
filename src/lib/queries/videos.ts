@@ -11,12 +11,13 @@ export interface Video {
   viewsCount: number;
   shareCount: number;
   userId: string | null;
-  challengeId: string;
+  vibeId: string | null;
   createdAt: string;
-  challenge?: {
+  vibe?: {
     id: string;
     title: string;
     category: string;
+    tags?: Array<{ id: string; name: string }>;
   };
   user?: {
     id: string;
@@ -25,14 +26,14 @@ export interface Video {
   };
 }
 
-export function useVideos(challengeId?: string) {
+export function useVideos(vibeId?: string) {
   const { setVideos } = useVideoStore();
 
   return useQuery<Video[]>({
-    queryKey: challengeId ? ["videos", challengeId] : ["videos"],
+    queryKey: vibeId ? ["videos", vibeId] : ["videos"],
     queryFn: async () => {
-      const url = challengeId
-        ? `/api/videos?challengeId=${challengeId}`
+      const url = vibeId
+        ? `/api/videos?vibeId=${vibeId}`
         : "/api/videos";
       const response = await fetch(url);
       if (!response.ok) {

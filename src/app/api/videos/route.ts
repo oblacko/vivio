@@ -8,7 +8,7 @@ import { prisma } from "@/lib/db/client";
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
-    const challengeId = searchParams.get("challengeId");
+    const vibeId = searchParams.get("vibeId");
     const category = searchParams.get("category");
     const sortBy = searchParams.get("sortBy") || "recent";
     const limit = parseInt(searchParams.get("limit") || "20");
@@ -25,9 +25,9 @@ export async function GET(request: NextRequest) {
     const videos = await prisma.video.findMany({
       where: {
         isPublic: true,
-        ...(challengeId && { challengeId }),
+        ...(vibeId && { vibeId }),
         ...(category && {
-          challenge: {
+          vibe: {
             category: category as any,
           },
         }),
@@ -43,17 +43,33 @@ export async function GET(request: NextRequest) {
             image: true,
           },
         },
-        challenge: {
+        vibe: {
           select: {
             id: true,
             title: true,
             category: true,
           },
+          include: {
+            tags: {
+              include: {
+                tag: true,
+              },
+            },
+          },
         },
       },
     });
 
-    return NextResponse.json(videos);
+    // Преобразуем теги в удобный формат
+    const videosWithTags = videos.map(video => ({
+      ...video,
+      vibe: video.vibe ? {
+        ...video.vibe,
+        tags: video.vibe.tags.map((vt: any) => vt.tag),
+      } : undefined,
+    }));
+
+    return NextResponse.json(videosWithTags);
   } catch (error) {
     console.error("Get videos error:", error);
     return NextResponse.json(

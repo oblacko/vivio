@@ -167,8 +167,8 @@ export async function POST(request: NextRequest) {
                   quality: "HD",
                 };
                 
-                if (job.challengeId) {
-                  videoData.challengeId = job.challengeId;
+                if (job.vibeId) {
+                  videoData.vibeId = job.vibeId;
                 }
                 
                 const video = await prisma.video.create({
@@ -247,10 +247,10 @@ export async function POST(request: NextRequest) {
                   }
                 }
                 
-                // Увеличение participantCount в Challenge (только если есть challengeId)
-                if (job.challengeId) {
-                  await prisma.challenge.update({
-                    where: { id: job.challengeId },
+                // Увеличение participantCount в Vibe (только если есть vibeId)
+                if (job.vibeId) {
+                  await prisma.vibe.update({
+                    where: { id: job.vibeId },
                     data: {
                       participantCount: {
                         increment: 1,

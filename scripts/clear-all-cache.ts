@@ -36,7 +36,7 @@ async function clearLocalCache() {
       console.log('🔗 Using Vercel KV...');
       // Для Vercel KV можно очистить конкретные ключи
       try {
-        const keys = ['challenges:list', 'challenges:list:v2'];
+        const keys = ['vibes:list', 'vibes:list:v2', 'challenges:list', 'challenges:list:v2'];
         for (const key of keys) {
           await kv.del(key);
         }

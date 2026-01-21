@@ -110,7 +110,7 @@ export function ShareDialog({ videoId, title, children }: ShareDialogProps) {
     try {
       await navigator.share({
         title: title,
-        text: `Смотрите это видео на Vivio: ${title}`,
+        text: `Смотрите это видео на vibeo.fun: ${title}`,
         url: shareUrl,
       });
       recordShare('native');

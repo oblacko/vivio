@@ -1,4 +1,4 @@
-# Vivio - Video Challenge App
+# vibeo.fun - Video Challenge App
 
 Приложение для создания 6-секундных видео с помощью AI (Grok Imagine API).
 

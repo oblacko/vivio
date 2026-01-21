@@ -9,7 +9,7 @@ const mockVideo = {
   likesCount: 10,
   viewsCount: 100,
   userId: 'user1',
-  challengeId: 'challenge1',
+  vibeId: 'vibe1',
   createdAt: new Date(),
 }
 

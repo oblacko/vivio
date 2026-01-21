@@ -2,11 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/hooks/useAuth";
-import { useRouter } from "next/navigation";
-import { useChallenges } from "@/lib/queries/challenges";
-import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
-import { AppSidebar } from "@/components/admin/AppSidebar";
-import { SiteHeader } from "@/components/admin/SiteHeader";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useVibes } from "@/lib/queries/vibes";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,11 +14,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { UsersTable } from "@/components/admin/UsersTable";
+import { VibesTable } from "@/components/admin/VibesTable";
 import { SettingsForm } from "@/components/admin/SettingsForm";
+import { TagsManager } from "@/components/admin/TagsManager";
+import { VibeGenerator } from "@/components/admin/VibeGenerator";
 import { toast } from "sonner";
 import { Plus, Edit, Trash2, AlertCircle, Loader2 } from "lucide-react";
+import type { Vibe } from "@/lib/queries/vibes";
 
-interface ChallengeFormData {
+interface VibeFormData {
   title: string;
   description: string;
   category: "MONUMENTS" | "PETS" | "FACES" | "SEASONAL";
@@ -43,7 +44,7 @@ interface User {
   };
 }
 
-const initialFormData: ChallengeFormData = {
+const initialFormData: VibeFormData = {
   title: "",
   description: "",
   category: "MONUMENTS",
@@ -55,10 +56,11 @@ const initialFormData: ChallengeFormData = {
 export default function AdminPage() {
   const { user, isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
-  const { data: challenges, isLoading: challengesLoading, refetch: refetchChallenges } = useChallenges();
+  const searchParams = useSearchParams();
+  const { data: vibes, isLoading: vibesLoading, refetch: refetchVibes } = useVibes();
   
-  const [activeSection, setActiveSection] = useState("challenges");
-  const [formData, setFormData] = useState<ChallengeFormData>(initialFormData);
+  const activeSection = searchParams.get("section") || "vibes";
+  const [formData, setFormData] = useState<VibeFormData>(initialFormData);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -98,8 +100,8 @@ export default function AdminPage() {
 
     try {
       const url = editingId 
-        ? `/api/admin/challenges/${editingId}`
-        : "/api/admin/challenges";
+        ? `/api/admin/vibes/${editingId}`
+        : "/api/admin/vibes";
       
       const method = editingId ? "PATCH" : "POST";
 
@@ -111,14 +113,14 @@ export default function AdminPage() {
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || "Ошибка при сохранении челленджа");
+        throw new Error(error.error || "Ошибка при сохранении вайба");
       }
 
-      toast.success(editingId ? "Челлендж обновлен" : "Челлендж создан");
+      toast.success(editingId ? "Вайб обновлен" : "Вайб создан");
       setFormData(initialFormData);
       setEditingId(null);
       setIsDialogOpen(false);
-      refetchChallenges();
+      refetchVibes();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Произошла ошибка");
     } finally {
@@ -126,36 +128,61 @@ export default function AdminPage() {
     }
   };
 
-  const handleEdit = (challenge: any) => {
+  const handleEdit = (vibe: any) => {
     setFormData({
-      title: challenge.title,
-      description: challenge.description || "",
-      category: challenge.category,
-      thumbnailUrl: challenge.thumbnailUrl || "",
-      promptTemplate: challenge.promptTemplate,
-      isActive: challenge.isActive,
+      title: vibe.title,
+      description: vibe.description || "",
+      category: vibe.category,
+      thumbnailUrl: vibe.thumbnailUrl || "",
+      promptTemplate: vibe.promptTemplate,
+      isActive: vibe.isActive,
     });
-    setEditingId(challenge.id);
+    setEditingId(vibe.id);
     setIsDialogOpen(true);
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Вы уверены, что хотите деактивировать этот челлендж?")) {
+  const handleToggleActive = async (id: string, currentStatus: boolean) => {
+    const action = currentStatus ? "деактивировать" : "активировать";
+    if (!confirm(`Вы уверены, что хотите ${action} этот вайб?`)) {
       return;
     }
 
     try {
-      const response = await fetch(`/api/admin/challenges/${id}`, {
+      const response = await fetch(`/api/admin/vibes/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isActive: !currentStatus }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || `Ошибка при ${action} вайба`);
+      }
+
+      toast.success(currentStatus ? "Вайб деактивирован" : "Вайб активирован");
+      refetchVibes();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Произошла ошибка");
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("Вы уверены, что хотите удалить этот вайб?")) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/admin/vibes/${id}`, {
         method: "DELETE",
       });
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || "Ошибка при удалении челленджа");
+        throw new Error(error.error || "Ошибка при удалении вайба");
       }
 
-      toast.success("Челлендж деактивирован");
-      refetchChallenges();
+      toast.success("Вайб удален");
+      refetchVibes();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Произошла ошибка");
     }
@@ -169,28 +196,28 @@ export default function AdminPage() {
 
   const renderContent = () => {
     switch (activeSection) {
-      case "challenges":
+      case "vibes":
         return (
           <div className="space-y-6">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-2xl font-bold tracking-tight">Челленджи</h2>
-                <p className="text-muted-foreground">Управление челленджами приложения</p>
+                <h2 className="text-2xl font-bold tracking-tight">Вайбы</h2>
+                <p className="text-muted-foreground">Управление вайбами приложения</p>
               </div>
               <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <DialogTrigger asChild>
                   <Button onClick={() => { setFormData(initialFormData); setEditingId(null); }}>
                     <Plus className="w-4 h-4 mr-2" />
-                    Создать челлендж
+                    Создать вайб
                   </Button>
                 </DialogTrigger>
                 <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                   <DialogHeader>
                     <DialogTitle>
-                      {editingId ? "Редактировать челлендж" : "Создать новый челлендж"}
+                      {editingId ? "Редактировать вайб" : "Создать новый вайб"}
                     </DialogTitle>
                     <DialogDescription>
-                      Заполните информацию о челлендже. Все поля обязательны, кроме описания и миниатюры.
+                      Заполните информацию о вайбе. Все поля обязательны, кроме описания и миниатюры.
                     </DialogDescription>
                   </DialogHeader>
                   
@@ -278,69 +305,47 @@ export default function AdminPage() {
               </Dialog>
             </div>
 
-            {challengesLoading ? (
+            {vibesLoading ? (
               <div className="text-center py-8">
                 <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2" />
-                <p className="text-muted-foreground">Загрузка челленджей...</p>
+                <p className="text-muted-foreground">Загрузка вайбов...</p>
               </div>
-            ) : challenges && challenges.length > 0 ? (
-              <div className="grid gap-4">
-                {challenges.map((challenge) => (
-                  <Card key={challenge.id}>
-                    <CardHeader>
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            <CardTitle>{challenge.title}</CardTitle>
-                            <Badge variant={challenge.isActive ? "default" : "secondary"}>
-                              {challenge.isActive ? "Активен" : "Неактивен"}
-                            </Badge>
-                            <Badge variant="outline">{challenge.category}</Badge>
-                          </div>
-                          <CardDescription>{challenge.description}</CardDescription>
-                        </div>
-                        <div className="flex gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleEdit(challenge)}
-                          >
-                            <Edit className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleDelete(challenge.id)}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-sm">
-                        <span className="font-medium">Участников:</span>{" "}
-                        {challenge.participantCount}
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
+            ) : vibes && vibes.length > 0 ? (
+              <VibesTable
+                vibes={vibes}
+                onEdit={handleEdit}
+                onToggleActive={handleToggleActive}
+                onDelete={handleDelete}
+              />
             ) : (
-              <Card>
-                <CardContent className="flex items-center justify-center py-12">
+              <div className="rounded-md border">
+                <div className="flex items-center justify-center py-12">
                   <div className="text-center">
                     <AlertCircle className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                    <p className="text-muted-foreground">Челленджи не найдены</p>
+                    <p className="text-muted-foreground">Вайбы не найдены</p>
                     <p className="text-sm text-muted-foreground mt-2">
-                      Создайте первый челлендж, нажав на кнопку выше
+                      Создайте первый вайб, нажав на кнопку выше
                     </p>
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             )}
           </div>
         );
+
+      case "vibes-generator":
+        return (
+          <div className="space-y-6">
+            <div>
+              <h2 className="text-2xl font-bold tracking-tight">Генерация вайбов через AI</h2>
+              <p className="text-muted-foreground">Автоматическая генерация вайбов с помощью DeepSeek AI</p>
+            </div>
+            <VibeGenerator />
+          </div>
+        );
+
+      case "tags":
+        return <TagsManager />;
 
       case "users":
         return (
@@ -392,27 +397,26 @@ export default function AdminPage() {
   }
 
   const sectionTitles: Record<string, string> = {
-    challenges: "Челленджи",
+    vibes: "Вайбы",
+    "vibes-generator": "Генерация вайбов",
+    tags: "Теги",
     users: "Пользователи",
     settings: "Настройки",
   };
 
   return (
-    <SidebarProvider
-      style={
-        {
-          "--sidebar-width": "16rem",
-          "--header-height": "4rem",
-        } as React.CSSProperties
-      }
-    >
-      <AppSidebar activeSection={activeSection} setActiveSection={setActiveSection} />
-      <SidebarInset>
-        <SiteHeader title={sectionTitles[activeSection] || "Админ-панель"} />
-        <div className="flex flex-1 flex-col gap-4 p-4 lg:p-6">
-          {renderContent()}
-        </div>
-      </SidebarInset>
-    </SidebarProvider>
+    <div className="container mx-auto max-w-7xl py-6 px-4">
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold tracking-tight">
+          {sectionTitles[activeSection] || "Админ-панель"}
+        </h1>
+        <p className="text-muted-foreground mt-2">
+          Управление системой
+        </p>
+      </div>
+      <div className="flex flex-1 flex-col gap-4">
+        {renderContent()}
+      </div>
+    </div>
   );
 }

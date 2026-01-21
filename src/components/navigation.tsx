@@ -2,9 +2,9 @@
 
 import React from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { Home, Play, Sparkles, Plus, LogOut, User, MenuIcon } from "lucide-react";
+import { Home, Play, Sparkles, Plus, LogOut, User, MenuIcon, Heart, Shield, Tags, Users, Settings, Wand2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUpload } from "@/lib/contexts/upload-context";
 import { useAuth } from "@/lib/hooks/useAuth";
@@ -35,9 +35,14 @@ const navigation: NavigationItem[] = [
     hidden: true, // Скрыто из меню
   },
   {
-    name: "Тренды",
-    href: "/challenges",
+    name: "Вайбы",
+    href: "/vibes",
     icon: Sparkles,
+  },
+  {
+    name: "Избранное",
+    href: "/favorites",
+    icon: Heart,
   },
   {
     name: "Видео",
@@ -52,11 +57,44 @@ const navigation: NavigationItem[] = [
   },
 ];
 
+const adminNavigation: NavigationItem[] = [
+  {
+    name: "Вайбы",
+    href: "/admin?section=vibes",
+    icon: Sparkles,
+  },
+  {
+    name: "Генерация AI",
+    href: "/admin?section=vibes-generator",
+    icon: Wand2,
+  },
+  {
+    name: "Теги",
+    href: "/admin?section=tags",
+    icon: Tags,
+  },
+  {
+    name: "Пользователи",
+    href: "/admin?section=users",
+    icon: Users,
+  },
+  {
+    name: "Настройки",
+    href: "/admin?section=settings",
+    icon: Settings,
+  },
+];
+
 export function Navigation() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { openUpload } = useUpload();
   const { user, isAuthenticated } = useAuth();
   const [open, setOpen] = React.useState(false);
+
+  const isAdminPage = pathname === "/admin";
+  const showAdminNav = isAdminPage && user?.role === "ADMIN";
+  const currentNav = showAdminNav ? adminNavigation : navigation;
 
   const handleSignOut = async () => {
     await signOut({ callbackUrl: "/" });
@@ -75,26 +113,37 @@ export function Navigation() {
   return (
     <header
       className={cn(
-        "sticky top-5 z-50",
-        "mx-auto w-full max-w-5xl rounded-lg border shadow",
-        "bg-background/95 supports-[backdrop-filter]:bg-background/80 backdrop-blur-lg",
+        "sticky top-6 z-50",
+        "mx-auto w-full max-w-6xl rounded-2xl border border-border/40 shadow-sm",
+        "bg-background/80 supports-[backdrop-filter]:bg-background/60 backdrop-blur-xl",
       )}
     >
-      <nav className="mx-auto flex items-center justify-between p-1.5">
+      <nav className="mx-auto flex items-center justify-between px-4 py-2">
         {/* Логотип */}
-        <Link href="/" className="hover:bg-accent flex cursor-pointer items-center gap-2 rounded-md px-2 py-1 duration-100">
-          <div className="flex items-center justify-center w-8 h-8 bg-primary rounded-lg">
-            <span className="text-primary-foreground font-bold text-sm">V</span>
+        <Link href="/" className="hover:bg-accent flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 duration-200">
+          <div className="flex items-center justify-center w-9 h-9 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl">
+            <svg width="20" height="20" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M9 10L16 24L23 10" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
           </div>
-          <span className="font-bold text-xl">Vivio</span>
+          <span className="font-bold text-xl tracking-tight">vibeo.fun</span>
         </Link>
 
         {/* Desktop навигация */}
         <div className="hidden items-center gap-1 lg:flex">
-          {navigation.filter(item => !item.hidden).map((item) => {
+          {currentNav.filter(item => !item.hidden).map((item) => {
             const Icon = item.icon;
-            const isActive = pathname === item.href ||
-              (item.href !== "/" && pathname.startsWith(item.href));
+            let isActive = false;
+            
+            if (showAdminNav) {
+              // Для админских ссылок проверяем searchParams
+              const section = searchParams.get("section") || "vibes";
+              isActive = item.href.includes(`section=${section}`);
+            } else {
+              // Для обычных ссылок проверяем pathname
+              isActive = pathname === item.href ||
+                (item.href !== "/" && pathname.startsWith(item.href));
+            }
             
             // Для кнопки "Создать видео" используем onClick вместо Link
             if (item.name === "Создать видео") {
@@ -207,10 +256,19 @@ export function Navigation() {
               side="left"
             >
               <div className="grid gap-y-2 overflow-y-auto px-4 pt-12 pb-5">
-                {navigation.filter(item => !item.hidden).map((item) => {
+                {currentNav.filter(item => !item.hidden).map((item) => {
                   const Icon = item.icon;
-                  const isActive = pathname === item.href ||
-                    (item.href !== "/" && pathname.startsWith(item.href));
+                  let isActive = false;
+                  
+                  if (showAdminNav) {
+                    // Для админских ссылок проверяем searchParams
+                    const section = searchParams.get("section") || "vibes";
+                    isActive = item.href.includes(`section=${section}`);
+                  } else {
+                    // Для обычных ссылок проверяем pathname
+                    isActive = pathname === item.href ||
+                      (item.href !== "/" && pathname.startsWith(item.href));
+                  }
 
                   // Для кнопки "Создать видео" используем onClick вместо Link
                   if (item.name === "Создать видео") {

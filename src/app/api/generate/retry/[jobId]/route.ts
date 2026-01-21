@@ -13,7 +13,7 @@ interface RouteParams {
 
 /**
  * Повторная обработка завершенного job для создания видео
- * Используется когда job завершен, но видео не было создано (например, из-за отсутствия challengeId)
+ * Используется когда job завершен, но видео не было создано (например, из-за отсутствия vibeId)
  */
 export async function POST(
   request: NextRequest,
@@ -22,7 +22,7 @@ export async function POST(
   try {
     const { jobId } = params;
     const body = await request.json();
-    const { challengeId, resultJson } = body;
+    const { vibeId, resultJson } = body;
 
     // Поиск job в БД
     const job = await prisma.generationJob.findUnique({
@@ -49,8 +49,8 @@ export async function POST(
       });
     }
 
-    // Получаем challengeId из запроса или из job (может быть null)
-    const finalChallengeId = challengeId || job.challengeId || undefined;
+    // Получаем vibeId из запроса или из job (может быть null)
+    const finalVibeId = vibeId || job.vibeId || undefined;
 
     // Получаем resultJson из запроса или из Grok API
     let videoResultJson = resultJson;
@@ -118,11 +118,11 @@ export async function POST(
       // Продолжаем создание видео даже если превью не удалось сгенерировать
     }
 
-    // Обновляем job с challengeId, если он был передан
-    if (challengeId && !job.challengeId) {
+    // Обновляем job с vibeId, если он был передан
+    if (vibeId && !job.vibeId) {
       await prisma.generationJob.update({
         where: { id: job.id },
-        data: { challengeId },
+        data: { vibeId },
       });
     }
 
@@ -137,8 +137,8 @@ export async function POST(
       quality: "HD",
     };
     
-    if (finalChallengeId) {
-      videoData.challengeId = finalChallengeId;
+    if (finalVibeId) {
+      videoData.vibeId = finalVibeId;
     }
     
     const video = await prisma.video.create({
@@ -157,10 +157,10 @@ export async function POST(
       },
     });
 
-    // Увеличение participantCount в Challenge (только если есть challengeId)
-    if (finalChallengeId) {
-      await prisma.challenge.update({
-        where: { id: finalChallengeId },
+    // Увеличение participantCount в Vibe (только если есть vibeId)
+    if (finalVibeId) {
+      await prisma.vibe.update({
+        where: { id: finalVibeId },
         data: {
           participantCount: {
             increment: 1,

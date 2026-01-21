@@ -23,7 +23,7 @@ enum JobStatus {
   CANCELLED
 }
 
-enum ChallengeCategory {
+enum VibeCategory {
   MONUMENTS
   PETS
   FACES
@@ -60,6 +60,7 @@ model User {
   accounts          Account[]
   sessions          Session[]
   creditTransactions CreditTransaction[]
+  favoriteVibes     FavoriteVibe[]
 
   @@map("users")
 }
@@ -104,29 +105,31 @@ model VerificationToken {
   @@map("verification_tokens")
 }
 
-model Challenge {
-  id               String            @id @default(cuid())
+model Vibe {
+  id               String       @id @default(cuid())
   title            String
   description      String?
-  category         ChallengeCategory
+  category         VibeCategory
   thumbnailUrl     String?
   promptTemplate   String // Шаблон промпта для этой категории
-  participantCount Int               @default(0)
-  isActive         Boolean           @default(true)
-  createdAt        DateTime          @default(now())
-  updatedAt        DateTime          @updatedAt
+  participantCount Int          @default(0)
+  isActive         Boolean      @default(true)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
 
   videos         Video[]
   generationJobs GenerationJob[]
+  tags           VibeTag[]
+  favorites      FavoriteVibe[]
 
   @@unique([title])
-  @@map("challenges")
+  @@map("vibes")
 }
 
 model GenerationJob {
   id            String    @id @default(cuid())
   userId        String?
-  challengeId   String?
+  vibeId        String?
   externalJobId String? // ID задачи в Grok API (taskId)
   imageUrl      String
   prompt        String
@@ -139,12 +142,12 @@ model GenerationJob {
   updatedAt     DateTime  @updatedAt
   completedAt   DateTime?
 
-  user      User?      @relation(fields: [userId], references: [id], onDelete: SetNull)
-  challenge Challenge? @relation(fields: [challengeId], references: [id], onDelete: Cascade)
-  video     Video?
+  user  User?  @relation(fields: [userId], references: [id], onDelete: SetNull)
+  vibe  Vibe?  @relation(fields: [vibeId], references: [id], onDelete: Cascade)
+  video Video?
 
   @@index([userId])
-  @@index([challengeId])
+  @@index([vibeId])
   @@index([status])
   @@index([externalJobId])
   @@map("generation_jobs")
@@ -154,7 +157,7 @@ model Video {
   id           String       @id @default(cuid())
   jobId        String       @unique
   userId       String?
-  challengeId  String?
+  vibeId       String?
   videoUrl     String // URL в Vercel Blob Storage
   thumbnailUrl String? // Вертикальное превью для видео
   ogImageUrl   String? // Горизонтальное превью 1200x630 для og:image
@@ -168,13 +171,13 @@ model Video {
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
 
-  user      User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
-  challenge Challenge?    @relation(fields: [challengeId], references: [id], onDelete: Cascade)
-  job       GenerationJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
-  shares    VideoShare[]
+  user   User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  vibe   Vibe?         @relation(fields: [vibeId], references: [id], onDelete: Cascade)
+  job    GenerationJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  shares VideoShare[]
 
   @@index([userId])
-  @@index([challengeId])
+  @@index([vibeId])
   @@index([createdAt])
   @@map("videos")
 }
@@ -211,9 +214,46 @@ model CreditTransaction {
 }
 
 model AppSettings {
-  id            String   @id @default("singleton")
+  id             String   @id @default("singleton")
   generationCost Float    @default(20)
-  updatedAt     DateTime @updatedAt
+  updatedAt      DateTime @updatedAt
 
   @@map("app_settings")
+}
+
+model Tag {
+  id        String    @id @default(cuid())
+  name      String    @unique
+  createdAt DateTime  @default(now())
+  vibes     VibeTag[]
+
+  @@map("tags")
+}
+
+model VibeTag {
+  vibeId String
+  tagId  String
+
+  vibe Vibe @relation(fields: [vibeId], references: [id], onDelete: Cascade)
+  tag  Tag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@unique([vibeId, tagId])
+  @@index([vibeId])
+  @@index([tagId])
+  @@map("vibe_tags")
+}
+
+model FavoriteVibe {
+  id        String   @id @default(cuid())
+  userId    String
+  vibeId    String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vibe Vibe @relation(fields: [vibeId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, vibeId])
+  @@index([userId])
+  @@index([vibeId])
+  @@map("favorite_vibes")
 }

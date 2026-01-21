@@ -1,6 +1,6 @@
 "use client";
 
-import { Trophy, Users, Settings, Shield } from "lucide-react";
+import { Sparkles, Tags, Users, Settings, Shield } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -19,7 +19,9 @@ interface AppSidebarProps {
 }
 
 const menuItems = [
-  { id: "challenges", label: "Челленджи", icon: Trophy },
+  { id: "vibes", label: "Вайбы", icon: Sparkles },
+  { id: "vibes-generator", label: "Генерация AI", icon: Tags },
+  { id: "tags", label: "Теги", icon: Tags },
   { id: "users", label: "Пользователи", icon: Users },
   { id: "settings", label: "Настройки", icon: Settings },
 ];

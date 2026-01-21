@@ -230,3 +230,14 @@ export async function getChallengesCache() {
 export async function setChallengesCache(challenges: any[]) {
   return setCache("challenges:list", challenges, 60 * 60); // 1 час
 }
+
+/**
+ * Кеширование списка вайбов (1 час)
+ */
+export async function getVibesCache() {
+  return getCache("vibes:list");
+}
+
+export async function setVibesCache(vibes: any[]) {
+  return setCache("vibes:list", vibes, 60 * 60); // 1 час
+}
