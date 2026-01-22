@@ -148,7 +148,7 @@ export function ImageToVideoUploader({
         description: error instanceof Error ? error.message : "Попробуйте еще раз",
       });
     }
-  }, [vibeId, uploadedImageUrl, selectedFile, initiateMutation]);
+  }, [vibeId, uploadedImageUrl, selectedFile, initiateMutation, user?.id]);
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     if (state !== "idle" && state !== "completed" && state !== "error") {

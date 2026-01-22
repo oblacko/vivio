@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import NextImage from "next/image";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -20,10 +20,13 @@ import {
 } from "lucide-react";
 import Cropper from "react-easy-crop";
 import { toast } from "sonner";
+import { motion, AnimatePresence } from "framer-motion";
 import { useUploadImage } from "@/lib/queries/upload";
 import { useInitiateGeneration, useGenerationStatus } from "@/lib/queries/generation";
 import { useVibes } from "@/lib/queries/vibes";
 import { useAuth } from "@/lib/hooks/useAuth";
+import { cn } from "@/lib/utils";
+import { Stepper } from "@/components/ui/stepper";
 
 interface FileUploadProps {
   onClose?: () => void;
@@ -72,7 +75,8 @@ export function FileUpload({ onClose, defaultChallengeId }: FileUploadProps) {
   const uploadMutation = useUploadImage();
   const initiateMutation = useInitiateGeneration();
   const { data: generationStatus } = useGenerationStatus(jobId);
-  const { data: vibes = [] } = useVibes();
+  const { data: vibesData } = useVibes();
+  const vibes = useMemo(() => vibesData?.vibes || [], [vibesData?.vibes]);
 
   const handleFileSelection = (file: File) => {
     // Блокируем загрузку во время генерации
@@ -157,6 +161,7 @@ export function FileUpload({ onClose, defaultChallengeId }: FileUploadProps) {
       const result = await initiateMutation.mutateAsync({
         imageUrl: uploadedImageUrl,
         vibeId: selectedChallengeId || undefined,
+        aspectRatio: selectedAspect,
         userId: user?.id,
       });
 
@@ -287,17 +292,80 @@ export function FileUpload({ onClose, defaultChallengeId }: FileUploadProps) {
     handleCancel();
   };
 
+  const steps = [
+    { id: 1, label: "Загрузка", description: "Выберите файл" },
+    { id: 2, label: "Кадрирование", description: "Настройте изображение" },
+    { id: 3, label: "Обработка", description: "Генерация видео" },
+  ];
+
   return (
-    <div className="space-y-4 w-full flex flex-col h-full">
-        <h2 className="text-2xl font-semibold flex w-full">
-          {step === 1 && "Загрузка файла"}
-          {step === 2 && "Кадрирование изображения"}
-          {step === 3 && "Обработка"}
-        </h2>
+    <div className="space-y-6 w-full flex flex-col h-full">
+        {/* Stepper */}
+        <Stepper steps={steps} currentStep={step} className="mb-4" />
+        
+        <div className="flex items-center justify-between w-full">
+          <h2 className="text-3xl font-bold">
+            {step === 1 && "Загрузка файла"}
+            {step === 2 && "Кадрирование изображения"}
+            {step === 3 && "Обработка"}
+          </h2>
+
+          {step === 2 && (
+            <div className="flex items-center gap-3">
+              <Button
+                variant="outline"
+                size="lg"
+                onClick={handleCancel}
+                disabled={!!(jobId && generationStatus?.status !== "completed" && generationStatus?.status !== "failed")}
+                className="min-w-[120px]"
+              >
+                <X className="size-4 mr-2" />
+                Отменить
+              </Button>
+              <Button
+                size="lg"
+                onClick={handleConfirmCrop}
+                disabled={!!(jobId && generationStatus?.status !== "completed" && generationStatus?.status !== "failed")}
+                className="min-w-[120px] shadow-md"
+              >
+                <Check className="size-4 mr-2" />
+                Подтвердить
+              </Button>
+            </div>
+          )}
+
+          {step === 3 && uploadMutation.isSuccess && !jobId && (
+            <div className="flex items-center gap-3">
+              <Button variant="outline" onClick={handleCancel}>
+                Отменить
+              </Button>
+              <Button onClick={handleStartGeneration} disabled={initiateMutation.isPending}>
+                {initiateMutation.isPending ? (
+                  <>
+                    <Loader2 className="size-4 mr-2 animate-spin" />
+                    Запуск...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="size-4 mr-2" />
+                    Генерировать
+                  </>
+                )}
+              </Button>
+            </div>
+          )}
+        </div>
 
         {/* Step 1: File Upload */}
+        <AnimatePresence mode="wait">
         {step === 1 && (
-          <>
+          <motion.div
+            key="step1"
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 20 }}
+            transition={{ duration: 0.3 }}
+          >
             <div className="space-y-4 flex-1 flex flex-col w-full">
               <FileUploadUI
                 onChange={handleFileSelection}
@@ -317,15 +385,21 @@ export function FileUpload({ onClose, defaultChallengeId }: FileUploadProps) {
                 disabled={!!(jobId && generationStatus?.status !== "completed" && generationStatus?.status !== "failed")}
               />
             </div>
-          </>
+          </motion.div>
         )}
 
         {/* Step 2: Image Cropping */}
         {step === 2 && (
-          <>
+          <motion.div
+            key="step2"
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 20 }}
+            transition={{ duration: 0.3 }}
+          >
             <div className="space-y-4">
               {/* Crop Area */}
-              <div className="relative h-96 bg-gray-900 rounded-lg overflow-hidden">
+              <div className="relative h-96 bg-gray-900 rounded-xl overflow-hidden shadow-lg border-2 border-muted">
                 {imagePreview && (
                   <Cropper
                     image={imagePreview}
@@ -338,12 +412,17 @@ export function FileUpload({ onClose, defaultChallengeId }: FileUploadProps) {
                     objectFit="contain"
                   />
                 )}
+                {/* Overlay с подсказками */}
+                <div className="absolute top-4 left-4 bg-black/70 backdrop-blur-sm text-white px-3 py-2 rounded-lg text-sm z-50 flex items-center gap-2">
+                  <Crop className="size-4" />
+                  Перетащите изображение для позиционирования
+                </div>
               </div>
 
               {/* Aspect Ratio Buttons */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium flex items-center gap-2">
-                  <Crop className="size-4" />
+              <div className="space-y-3">
+                <label className="text-base font-semibold flex items-center gap-2">
+                  <Crop className="size-5 text-primary" />
                   Формат кадрирования
                 </label>
                 <div className="flex flex-wrap gap-2">
@@ -353,53 +432,98 @@ export function FileUpload({ onClose, defaultChallengeId }: FileUploadProps) {
                       variant={
                         selectedAspect === ratio.value ? "default" : "outline"
                       }
-                      size="sm"
+                      size="default"
                       onClick={() => setSelectedAspect(ratio.value)}
+                      className={cn(
+                        "transition-all duration-200",
+                        selectedAspect === ratio.value 
+                          ? "shadow-md ring-2 ring-primary ring-offset-2" 
+                          : "hover:border-primary/50"
+                      )}
                     >
                       {ratio.label}
                     </Button>
                   ))}
                 </div>
+                {selectedAspect !== 0 && (
+                  <p className="text-sm text-muted-foreground flex items-center gap-1">
+                    <Check className="size-3" />
+                    Выбрано: {ASPECT_RATIOS.find(r => r.value === selectedAspect)?.label}
+                  </p>
+                )}
               </div>
 
               {/* Zoom Control */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium">
-                  Масштаб: {zoom.toFixed(1)}x
-                </label>
-                <input
-                  type="range"
-                  min={1}
-                  max={3}
-                  step={0.1}
-                  value={zoom}
-                  onChange={(e) => setZoom(Number(e.target.value))}
-                  className="w-full"
-                />
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="text-base font-semibold">Масштаб</label>
+                  <span className="text-sm font-mono bg-primary/10 px-3 py-1 rounded-full text-primary">
+                    {zoom.toFixed(1)}x
+                  </span>
+                </div>
+                <div className="relative">
+                  <input
+                    type="range"
+                    min={1}
+                    max={3}
+                    step={0.1}
+                    value={zoom}
+                    onChange={(e) => setZoom(Number(e.target.value))}
+                    className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:shadow-lg [&::-webkit-slider-thumb]:transition-transform [&::-webkit-slider-thumb]:hover:scale-110 [&::-moz-range-thumb]:w-5 [&::-moz-range-thumb]:h-5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-primary [&::-moz-range-thumb]:cursor-pointer [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:shadow-lg"
+                  />
+                  <div className="flex justify-between mt-2 text-xs text-muted-foreground">
+                    <span>1x</span>
+                    <span>2x</span>
+                    <span>3x</span>
+                  </div>
+                </div>
               </div>
             </div>
 
-            <div className="flex justify-end gap-3 pt-4">
-              <Button
-                variant="outline"
-                onClick={handleCancel}
-                disabled={!!(jobId && generationStatus?.status !== "completed" && generationStatus?.status !== "failed")}
-              >
-                Отменить
-              </Button>
-              <Button
-                onClick={handleConfirmCrop}
-                disabled={!!(jobId && generationStatus?.status !== "completed" && generationStatus?.status !== "failed")}
-              >
-                Подтвердить
-              </Button>
-            </div>
-          </>
+          </motion.div>
         )}
 
         {/* Step 3: Final Upload & Result */}
         {step === 3 && (
-          <>
+          <motion.div
+            key="step3"
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 20 }}
+            transition={{ duration: 0.3 }}
+          >
+            {uploadMutation.isSuccess && uploadedImageUrl && !jobId && (
+              <div className="space-y-2 mb-6">
+                <label className="text-sm font-medium flex items-center gap-2">
+                  <Sparkles className="size-4" />
+                  Выберите челлендж (опционально)
+                </label>
+                <Select
+                  value={selectedChallengeId || "none"}
+                  onValueChange={(value) =>
+                    setSelectedChallengeId(value === "none" ? null : value)
+                  }
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Без челленджа" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Без вайба</SelectItem>
+                    {vibes.map((vibe) => (
+                      <SelectItem key={vibe.id} value={vibe.id}>
+                        {vibe.title} ({vibe.participantCount} участников)
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {selectedChallengeId && (
+                  <p className="text-sm text-muted-foreground pl-7">
+                    {vibes.find((v) => v.id === selectedChallengeId)?.description}
+                  </p>
+                )}
+              </div>
+            )}
+
             <Card className="p-4 border-0 shadow-none bg-transparent">
               {croppedImage && (
                 <div className="relative aspect-square max-w-md mx-auto bg-white rounded-lg overflow-hidden shadow-sm">
@@ -415,101 +539,139 @@ export function FileUpload({ onClose, defaultChallengeId }: FileUploadProps) {
             </Card>
 
             {uploadMutation.isPending && (
-              <div className="space-y-3 p-4 rounded-lg">
-                <div className="space-y-2">
-                  <div className="flex items-center justify-center gap-2">
-                    <Loader2 className="size-5 animate-spin text-blue-500" />
-                    <p className="text-sm text-gray-600">
-                      Загрузка изображения...
-                    </p>
+              <Card className="border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-background shadow-md">
+                <div className="p-6">
+                  <div className="flex items-center gap-4">
+                    <Loader2 className="size-6 animate-spin text-primary flex-shrink-0" />
+                    <div className="flex-1 space-y-2">
+                      <p className="font-medium text-lg">Загрузка изображения...</p>
+                      <Progress value={50} className="h-2" />
+                    </div>
                   </div>
                 </div>
-              </div>
+              </Card>
             )}
 
             {uploadError && (
-              <div className="p-4 bg-red-50 rounded-lg border border-red-200">
-                <div className="flex items-center gap-2 text-red-700">
-                  <X className="size-5" />
-                  <p className="font-medium">Ошибка загрузки</p>
-                </div>
-                <p className="text-sm text-red-600 mt-2">{uploadError}</p>
-              </div>
-            )}
-
-            {uploadMutation.isSuccess && uploadedImageUrl && !jobId && (
-              <div className="space-y-4">
-                <div className="p-4 bg-green-50 rounded-lg border border-green-200">
-                  <div className="flex items-center gap-2 text-green-700">
-                    <Check className="size-5" />
-                    <p className="font-medium">
-                      Изображение успешно загружено!
-                    </p>
+              <Card className="border-2 border-destructive/20 bg-gradient-to-br from-destructive/5 to-background shadow-md">
+                <div className="p-6">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="p-2 bg-destructive/10 rounded-full">
+                      <X className="size-5 text-destructive" />
+                    </div>
+                    <p className="font-semibold text-lg text-destructive">Ошибка загрузки</p>
                   </div>
+                  <p className="text-sm text-muted-foreground pl-11">{uploadError}</p>
                 </div>
-
-                {/* Выбор челленджа */}
-                <div className="space-y-2">
-                  <label className="text-sm font-medium flex items-center gap-2">
-                    <Sparkles className="size-4" />
-                    Выберите челлендж (опционально)
-                  </label>
-                  <Select 
-                    value={selectedChallengeId || "none"} 
-                    onValueChange={(value) => setSelectedChallengeId(value === "none" ? null : value)}
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Без челленджа" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">Без вайба</SelectItem>
-                      {vibes.map((vibe) => (
-                        <SelectItem key={vibe.id} value={vibe.id}>
-                          {vibe.title} ({vibe.participantCount} участников)
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {selectedChallengeId && (
-                    <p className="text-xs text-gray-500">
-                      {vibes.find(v => v.id === selectedChallengeId)?.description}
-                    </p>
-                  )}
-                </div>
-              </div>
+              </Card>
             )}
+
 
             {/* Генерация в процессе */}
             {jobId && generationStatus && generationStatus.status !== "completed" && generationStatus.status !== "failed" && (
-              <div className="space-y-3 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                <div className="flex items-center gap-2 text-blue-700">
-                  <Loader2 className="size-5 animate-spin" />
-                  <p className="font-medium">
-                    {generationStatus.status === "queued" && "В очереди..."}
-                    {generationStatus.status === "processing" && "Генерация видео..."}
-                  </p>
-                </div>
-                {generationStatus.progress !== undefined && (
-                  <div className="space-y-2">
-                    <Progress value={generationStatus.progress} className="h-2" />
-                    <p className="text-sm text-blue-600 text-center">
-                      {generationStatus.progress}%
-                    </p>
+              <Card className="border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-background shadow-lg">
+                <div className="p-6 space-y-4">
+                  <div className="flex items-center gap-4">
+                    <Loader2 className="size-7 animate-spin text-primary flex-shrink-0" />
+                    <div className="flex-1">
+                      <p className="font-semibold text-lg mb-1">
+                        {generationStatus.status === "queued" && "В очереди..."}
+                        {generationStatus.status === "processing" && "Генерация видео..."}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        Это займет около 30 секунд
+                      </p>
+                    </div>
                   </div>
-                )}
-              </div>
+                  {generationStatus.progress !== undefined && (
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="font-medium">Прогресс</span>
+                        <span className="font-mono text-primary font-semibold">
+                          {generationStatus.progress}%
+                        </span>
+                      </div>
+                      <Progress value={generationStatus.progress} className="h-3 shadow-inner" />
+                      <div className="flex gap-3 text-xs">
+                        <span className={cn(
+                          "transition-colors",
+                          generationStatus.progress > 0 ? "text-primary font-medium" : "text-muted-foreground"
+                        )}>
+                          Загрузка
+                        </span>
+                        <span className={cn(
+                          "transition-colors",
+                          generationStatus.progress > 30 ? "text-primary font-medium" : "text-muted-foreground"
+                        )}>
+                          Обработка
+                        </span>
+                        <span className={cn(
+                          "transition-colors",
+                          generationStatus.progress > 70 ? "text-primary font-medium" : "text-muted-foreground"
+                        )}>
+                          Генерация
+                        </span>
+                        <span className={cn(
+                          "transition-colors",
+                          generationStatus.progress === 100 ? "text-primary font-medium" : "text-muted-foreground"
+                        )}>
+                          Готово
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </Card>
             )}
 
             {/* Генерация завершена успешно */}
             {generationStatus?.status === "completed" && generationStatus.videoUrl && (
-              <div className="p-4 bg-green-50 rounded-lg border border-green-200">
-                <div className="flex items-center gap-2 text-green-700">
-                  <Check className="size-5" />
-                  <p className="font-medium">
-                    Видео успешно создано!
-                  </p>
+              <Card className="border-2 border-green-500/20 bg-gradient-to-br from-green-50 to-background dark:from-green-950/20 shadow-lg animate-in fade-in duration-500">
+                <div className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-green-500/10 rounded-full animate-pulse">
+                        <Check className="size-7 text-green-600 dark:text-green-400" />
+                      </div>
+                      <div>
+                        <p className="font-semibold text-xl text-green-700 dark:text-green-400">
+                          Видео успешно создано!
+                        </p>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Готово к скачиванию и просмотру
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm" onClick={handleRepeat}>
+                        <RotateCcw className="size-4 mr-2" />
+                        Повторить
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => {
+                        if (generationStatus.videoUrl) {
+                          const link = document.createElement("a");
+                          link.href = generationStatus.videoUrl;
+                          link.download = `video-${Date.now()}.mp4`;
+                          link.click();
+                          toast.success("Видео скачано");
+                        }
+                      }}>
+                        <Download className="size-4 mr-2" />
+                        Скачать
+                      </Button>
+                      <Button size="sm" onClick={() => {
+                        if (generationStatus.videoUrl) {
+                          navigator.clipboard.writeText(generationStatus.videoUrl);
+                          toast.success("Ссылка скопирована в буфер обмена");
+                        }
+                      }}>
+                        <Share2 className="size-4 mr-2" />
+                        Поделиться
+                      </Button>
+                    </div>
+                  </div>
                 </div>
-              </div>
+              </Card>
             )}
 
             {/* Ошибка генерации */}
@@ -523,33 +685,11 @@ export function FileUpload({ onClose, defaultChallengeId }: FileUploadProps) {
               </div>
             )}
 
-            <div className="flex justify-end gap-3 pt-4">
+            <div className="flex justify-end gap-3 pt-6 border-t border-border">
               {uploadMutation.isPending && (
                 <Button variant="outline" onClick={handleCancel} disabled>
                   Отменить
                 </Button>
-              )}
-
-              {/* После успешной загрузки - кнопка Генерировать */}
-              {uploadMutation.isSuccess && !jobId && (
-                <>
-                  <Button variant="outline" onClick={handleCancel}>
-                    Отменить
-                  </Button>
-                  <Button onClick={handleStartGeneration} disabled={initiateMutation.isPending}>
-                    {initiateMutation.isPending ? (
-                      <>
-                        <Loader2 className="size-4 mr-2 animate-spin" />
-                        Запуск...
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="size-4 mr-2" />
-                        Генерировать
-                      </>
-                    )}
-                  </Button>
-                </>
               )}
 
               {/* Во время генерации */}
@@ -559,36 +699,6 @@ export function FileUpload({ onClose, defaultChallengeId }: FileUploadProps) {
                 </Button>
               )}
 
-              {/* После успешной генерации */}
-              {generationStatus?.status === "completed" && generationStatus.videoUrl && (
-                <>
-                  <Button variant="outline" onClick={handleRepeat}>
-                    <RotateCcw className="size-4 mr-2" />
-                    Повторить
-                  </Button>
-                  <Button variant="outline" onClick={() => {
-                    if (generationStatus.videoUrl) {
-                      const link = document.createElement("a");
-                      link.href = generationStatus.videoUrl;
-                      link.download = `video-${Date.now()}.mp4`;
-                      link.click();
-                      toast.success("Видео скачано");
-                    }
-                  }}>
-                    <Download className="size-4 mr-2" />
-                    Скачать
-                  </Button>
-                  <Button onClick={() => {
-                    if (generationStatus.videoUrl) {
-                      navigator.clipboard.writeText(generationStatus.videoUrl);
-                      toast.success("Ссылка скопирована в буфер обмена");
-                    }
-                  }}>
-                    <Share2 className="size-4 mr-2" />
-                    Поделиться
-                  </Button>
-                </>
-              )}
 
               {/* Ошибка генерации */}
               {generationError && (
@@ -612,8 +722,9 @@ export function FileUpload({ onClose, defaultChallengeId }: FileUploadProps) {
                 </>
               )}
             </div>
-          </>
+          </motion.div>
         )}
+        </AnimatePresence>
     </div>
   );
 }

@@ -8,6 +8,7 @@ import { validateVibes, VIBE_JSON_SCHEMA_TEXT } from "@/lib/deepseek/vibe-schema
 const generateVibesSchema = z.object({
   instruction: z.string().min(1, "Инструкция обязательна"),
   count: z.number().min(1).max(50).optional(),
+  title: z.string().optional(),
   jsonSchema: z.string().optional(),
 });
 
@@ -34,9 +35,30 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const validatedData = generateVibesSchema.parse(body);
 
+    console.log("🔍 Проверка Prisma моделей:");
+    console.log("- vibe:", !!prisma.vibe);
+    console.log("- vibeGenerationLog:", !!prisma.vibeGenerationLog);
+
+    if (!prisma.vibeGenerationLog) {
+      console.error("❌ Ошибка: prisma.vibeGenerationLog не определен! Попробуйте перезапустить сервер.");
+      return NextResponse.json(
+        { error: "Внутренняя ошибка конфигурации базы данных. Модель логов не найдена." },
+        { status: 500 }
+      );
+    }
+
     console.log("🎨 Запуск генерации вайбов:");
     console.log("📝 Instruction:", validatedData.instruction);
     console.log("🔢 Count:", validatedData.count || "auto");
+
+    // Сохранение лога инструкции
+    await prisma.vibeGenerationLog.create({
+      data: {
+        instruction: validatedData.instruction,
+        title: validatedData.title,
+        count: validatedData.count || 5,
+      },
+    });
 
     // Генерация вайбов через DeepSeek
     const generateResponse = await deepseekClient.generateVibes({
@@ -65,25 +87,11 @@ export async function POST(request: NextRequest) {
 
     for (const vibe of validatedVibes.vibes) {
       try {
-        // Проверка на дубликаты по названию
-        const existingVibe = await prisma.vibe.findUnique({
-          where: { title: vibe.title },
-        });
-
-        if (existingVibe) {
-          console.warn(`⚠️ Вайб "${vibe.title}" уже существует, пропускаем`);
-          errors.push({
-            title: vibe.title,
-            error: "Вайб с таким названием уже существует",
-          });
-          continue;
-        }
-
         // Создание вайба
         const createdVibe = await prisma.vibe.create({
           data: {
             title: vibe.title,
-            category: vibe.category,
+            category: "OTHER", // Дефолтная категория, так как теперь она необязательна для AI
             promptTemplate: vibe.promptTemplate,
             description: vibe.description || null,
             isActive: false, // Важно: создаются как неактивные

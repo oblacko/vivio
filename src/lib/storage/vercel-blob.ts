@@ -5,7 +5,7 @@
 
 import { put, del, head } from "@vercel/blob";
 
-const BLOB_READ_WRITE_TOKEN = process.env.BLOB_VIVIO_READ_WRITE_TOKEN || process.env.BLOB_READ_WRITE_TOKEN;
+const BLOB_READ_WRITE_TOKEN = process.env.BLOB_READ_WRITE_TOKEN;
 
 if (!BLOB_READ_WRITE_TOKEN) {
   console.warn("BLOB_READ_WRITE_TOKEN is not set in environment variables");

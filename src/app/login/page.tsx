@@ -1,5 +1,6 @@
 import dynamic from "next/dynamic";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Suspense } from "react";
 
 const LoginForm = dynamic(() => import("@/components/login-form").then(mod => ({ default: mod.LoginForm })), {
   loading: () => (
@@ -15,9 +16,14 @@ const LoginForm = dynamic(() => import("@/components/login-form").then(mod => ({
 
 export default function LoginPage() {
   return (
-    <div className="flex min-h-svh flex-col items-center justify-center bg-muted p-6 md:p-10">
+    <div
+      className="flex min-h-svh flex-col items-center justify-center p-6 md:p-10"
+      style={{ backgroundColor: "rgba(244, 244, 245, 0)" }}
+    >
       <div className="w-full max-w-sm md:max-w-3xl">
-        <LoginForm />
+        <Suspense fallback={<Skeleton className="h-[400px] w-full" />}>
+          <LoginForm />
+        </Suspense>
       </div>
     </div>
   )

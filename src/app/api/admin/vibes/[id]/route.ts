@@ -59,20 +59,6 @@ export async function PATCH(
     const body = await request.json();
     const validatedData = updateVibeSchema.parse(body);
 
-    // Проверка на дубликаты названия при обновлении
-    if (validatedData.title && validatedData.title !== existingVibe.title) {
-      const duplicateVibe = await prisma.vibe.findUnique({
-        where: { title: validatedData.title },
-      });
-
-      if (duplicateVibe) {
-        return NextResponse.json(
-          { error: "Вайб с таким названием уже существует" },
-          { status: 400 }
-        );
-      }
-    }
-
     // Обновление вайба
     const updatedVibe = await prisma.vibe.update({
       where: { id },

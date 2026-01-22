@@ -15,87 +15,59 @@ export interface Vibe {
   tags?: Tag[];
 }
 
-// Mock vibes for development
-const mockVibes: Vibe[] = [
-  {
-    id: "1",
-    title: "Мои любимые питомцы",
-    description: "Создайте забавное видео с вашим питомцем в главной роли!",
-    category: "PETS",
-    thumbnailUrl: "https://images.unsplash.com/photo-1544568100-847a948585b9?w=400&h=711&fit=crop",
-    promptTemplate: "Transform this image of a pet into a magical animated scene where the pet becomes the star of an adventure. Make it fun and whimsical with dynamic movements.",
-    participantCount: 42,
-    isActive: true,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: "2",
-    title: "Памятники оживают",
-    description: "Оживите исторические памятники в вашем городе!",
-    category: "MONUMENTS",
-    thumbnailUrl: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=711&fit=crop",
-    promptTemplate: "Transform this monument into a living, breathing scene where the statue comes to life. Add dynamic movements, lighting effects, and historical context.",
-    participantCount: 28,
-    isActive: true,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: "3",
-    title: "Лица с характером",
-    description: "Преобразите портреты в динамичные истории!",
-    category: "FACES",
-    thumbnailUrl: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400&h=711&fit=crop",
-    promptTemplate: "Transform this portrait into a dynamic scene where the person comes to life with expressive movements, emotions, and storytelling elements.",
-    participantCount: 35,
-    isActive: true,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: "4",
-    title: "Сезонные чудеса",
-    description: "Празднуйте времена года с волшебством!",
-    category: "SEASONAL",
-    thumbnailUrl: "https://images.unsplash.com/photo-1512389142860-9c449e58a543?w=400&h=711&fit=crop",
-    promptTemplate: "Transform this scene into a magical seasonal wonderland with dynamic weather effects, festive elements, and celebratory atmosphere.",
-    participantCount: 19,
-    isActive: true,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-];
+export interface VibesResponse {
+  vibes: Vibe[];
+  pagination: {
+    total: number;
+    pages: number;
+    currentPage: number;
+    limit: number;
+  };
+}
 
-export function useVibes() {
+export interface VibesFilters {
+  page?: number;
+  limit?: number;
+  isActive?: string;
+  sortBy?: string;
+  tagId?: string;
+  search?: string;
+}
+
+export function useVibes(options: { isAdmin?: boolean; filters?: VibesFilters } = {}) {
   const { setVibes } = useVibeStore();
+  const isAdmin = options.isAdmin ?? false;
+  const filters = options.filters || {};
 
-  return useQuery<Vibe[]>({
-    queryKey: ["vibes"],
+  return useQuery<VibesResponse>({
+    queryKey: ["vibes", isAdmin, filters],
     queryFn: async () => {
-      try {
-        const response = await fetch("/api/vibes");
-        if (!response.ok) {
-          throw new Error("Failed to fetch vibes");
+      const queryParams = new URLSearchParams();
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== "") {
+          queryParams.append(key, value.toString());
         }
-        const data = await response.json();
-        // Если API вернул данные, используем их, иначе mock данные
-        const vibes = data.length > 0 ? data : mockVibes;
-        setVibes(vibes);
-        return vibes;
-      } catch (error) {
-        console.warn("API not available, using mock data:", error);
-        // Возвращаем mock данные при ошибке API
-        setVibes(mockVibes);
-        return mockVibes;
+      });
+
+      const endpoint = isAdmin 
+        ? `/api/admin/vibes?${queryParams.toString()}` 
+        : `/api/vibes?${queryParams.toString()}`;
+        
+      const response = await fetch(endpoint);
+      if (!response.ok) {
+        throw new Error("Failed to fetch vibes");
       }
+      const data = await response.json();
+      
+      // Обработка разного формата ответа для админки и пользователя
+      const vibesList = isAdmin ? data.vibes : data;
+      setVibes(vibesList);
+      
+      return isAdmin ? data : { vibes: data, pagination: { total: data.length, pages: 1, currentPage: 1, limit: 50 } };
     },
-    staleTime: 0, // Отключаем кеширование для разработки
-    // Увеличиваем время ожидания
+    staleTime: 0,
     retry: 1,
     retryDelay: 1000,
-    // Добавляем начальные данные
-    initialData: mockVibes,
   });
 }
 
@@ -110,13 +82,8 @@ export function useVibe(id: string) {
         }
         return response.json();
       } catch (error) {
-        console.warn("API not available, using mock data for vibe:", id);
-        // Возвращаем mock данные для конкретного вайба
-        const vibe = mockVibes.find(v => v.id === id);
-        if (!vibe) {
-          throw new Error("Vibe not found");
-        }
-        return vibe;
+        console.warn("API not available for vibe:", id);
+        throw error;
       }
     },
   });

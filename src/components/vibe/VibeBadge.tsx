@@ -55,7 +55,7 @@ export function VibeBadge({
           onClick={(e) => e.stopPropagation()}
         >
           <div className="flex flex-col gap-1">
-            <p className="text-sm font-medium truncate hover:underline">
+            <p className="text-sm font-medium truncate hover:underline text-slate-200">
               {vibeName}
             </p>
             {tags && tags.length > 0 && (

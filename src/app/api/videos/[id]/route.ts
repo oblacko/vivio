@@ -24,11 +24,6 @@ export async function GET(request: Request, { params }: RouteParams) {
           },
         },
         vibe: {
-          select: {
-            id: true,
-            title: true,
-            category: true,
-          },
           include: {
             tags: {
               include: {

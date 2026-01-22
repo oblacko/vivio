@@ -5,7 +5,6 @@ import { z } from "zod";
  */
 export const vibeSchema = z.object({
   title: z.string().min(1, "Название вайба обязательно"),
-  category: z.enum(["MONUMENTS", "PETS", "FACES", "SEASONAL"]),
   promptTemplate: z.string().min(1, "Шаблон промпта обязателен"),
   description: z.string().optional(),
 });
@@ -52,31 +51,19 @@ export const VIBE_JSON_SCHEMA_TEXT = `{
             "type": "string",
             "description": "Уникальное название вайба на русском языке"
           },
-          "category": {
-            "type": "string",
-            "enum": ["MONUMENTS", "PETS", "FACES", "SEASONAL"],
-            "description": "Категория вайба"
-          },
           "promptTemplate": {
             "type": "string",
-            "description": "Творческий промпт для AI генерации видео"
+            "description": "Творческий промпт для генерации видео на основе вашей инструкции"
           },
           "description": {
             "type": "string",
             "description": "Описание вайба (опционально)"
           }
         },
-        "required": ["title", "category", "promptTemplate"]
+        "required": ["title", "promptTemplate"]
       },
       "minItems": 1
     }
   },
   "required": ["vibes"]
 }`;
-
-/**
- * Дефолтная инструкция для генерации вайбов
- */
-export const DEFAULT_GENERATION_INSTRUCTION = `Сгенерируй креативные вайбы для видео-челленджа. 
-Каждый вайб должен быть уникальным и интересным.
-Промпты должны быть креативными и подходить для генерации AI видео.`;

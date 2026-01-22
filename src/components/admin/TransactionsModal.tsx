@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   Dialog,
   DialogContent,
@@ -61,9 +61,9 @@ export function TransactionsModal({
     totalPages: 0,
   });
 
-  const fetchTransactions = async () => {
+  const fetchTransactions = useCallback(async () => {
     if (!userId) return;
-    
+
     setIsLoading(true);
     try {
       const params = new URLSearchParams({
@@ -90,13 +90,13 @@ export function TransactionsModal({
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [userId, pagination.page, filters]);
 
   useEffect(() => {
     if (open && userId) {
       fetchTransactions();
     }
-  }, [open, userId, pagination.page, filters]);
+  }, [open, userId, pagination.page, filters, fetchTransactions]);
 
   const handleFilterChange = (key: string, value: string) => {
     setFilters((prev) => ({ ...prev, [key]: value }));

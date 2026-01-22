@@ -18,7 +18,6 @@ export interface GenerateVibesOptions {
 
 export interface GeneratedVibe {
   title: string;
-  category: "MONUMENTS" | "PETS" | "FACES" | "SEASONAL";
   promptTemplate: string;
   description?: string;
 }
@@ -96,28 +95,10 @@ class DeepSeekClient {
     const { instruction, count, jsonSchema } = options;
 
     // Системный промпт с JSON Schema
-    const systemPrompt = `You are a creative assistant that generates video vibe challenges.
-
-${jsonSchema || `Generate vibes in the following JSON format:
-{
-  "vibes": [
-    {
-      "title": "string",
-      "category": "MONUMENTS" | "PETS" | "FACES" | "SEASONAL",
-      "promptTemplate": "string",
-      "description": "string (optional)"
-    }
-  ]
-}`}
-
-Rules:
-- Each vibe must have a unique, creative title
-- Category must be one of: MONUMENTS, PETS, FACES, SEASONAL
-- promptTemplate should be a creative prompt for AI video generation
-- description is optional but recommended
-- All text should be in Russian
-${count ? `- Generate exactly ${count} vibes` : '- Generate between 3-10 vibes'}
-- Ensure all JSON is valid and properly formatted`;
+    const systemPrompt = `You must output ONLY a valid JSON object.
+${jsonSchema || `The JSON must have a "vibes" array with "title", "promptTemplate", and "description" fields.`}
+${count ? `Generate exactly ${count} items.` : ''}
+All text in the JSON values must be in Russian.`;
 
     const userPrompt = instruction;
 
@@ -130,8 +111,8 @@ ${count ? `- Generate exactly ${count} vibes` : '- Generate between 3-10 vibes'}
       response_format: {
         type: "json_object"
       },
-      temperature: 0.8,
-      max_tokens: 4000
+      temperature: 1.5,
+      max_tokens: 8000
     };
 
     console.log("🚀 Отправка запроса в DeepSeek API:");

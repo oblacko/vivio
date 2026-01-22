@@ -28,6 +28,7 @@ enum VibeCategory {
   PETS
   FACES
   SEASONAL
+  OTHER
 }
 
 enum UserRole {
@@ -109,7 +110,7 @@ model Vibe {
   id               String       @id @default(cuid())
   title            String
   description      String?
-  category         VibeCategory
+  category         VibeCategory?
   thumbnailUrl     String?
   promptTemplate   String // Шаблон промпта для этой категории
   participantCount Int          @default(0)
@@ -122,7 +123,6 @@ model Vibe {
   tags           VibeTag[]
   favorites      FavoriteVibe[]
 
-  @@unique([title])
   @@map("vibes")
 }
 
@@ -133,6 +133,7 @@ model GenerationJob {
   externalJobId String? // ID задачи в Grok API (taskId)
   imageUrl      String
   prompt        String
+  aspectRatio   Float? // Формат кадрирования (1.0 для 1:1, 0.5625 для 9:16, и т.д.)
   status        JobStatus @default(QUEUED)
   progress      Int       @default(0) // 0-100
   duration      Int       @default(6) // Фиксированная длительность 6 секунд
@@ -161,6 +162,7 @@ model Video {
   videoUrl     String // URL в Vercel Blob Storage
   thumbnailUrl String? // Вертикальное превью для видео
   ogImageUrl   String? // Горизонтальное превью 1200x630 для og:image
+  aspectRatio  Float? // Формат кадрирования видео (1.0 для 1:1, 0.5625 для 9:16, и т.д.)
   duration     Int          @default(6) // 6 секунд
   quality      VideoQuality @default(HD)
   likesCount   Int          @default(0)
@@ -256,4 +258,14 @@ model FavoriteVibe {
   @@index([userId])
   @@index([vibeId])
   @@map("favorite_vibes")
+}
+
+model VibeGenerationLog {
+  id          String   @id @default(cuid())
+  title       String?
+  instruction String   @db.Text
+  count       Int
+  createdAt   DateTime @default(now())
+
+  @@map("vibe_generation_logs")
 }

@@ -10,6 +10,7 @@ import { auth } from "@/lib/auth";
 const initiateSchema = z.object({
   vibeId: z.string().min(1).optional(),
   imageUrl: z.string().url(),
+  aspectRatio: z.number().optional(),
   userId: z.string().optional(),
 }).transform((data) => ({
   ...data,
@@ -18,6 +19,15 @@ const initiateSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
+    // Проверка наличия необходимых переменных окружения
+    if (!process.env.AUTH_SECRET) {
+      console.error("AUTH_SECRET is not set");
+      return NextResponse.json(
+        { error: "Серверная конфигурация не завершена" },
+        { status: 500 }
+      );
+    }
+
     // Проверка авторизации
     const session = await auth();
     if (!session?.user) {
@@ -129,6 +139,7 @@ export async function POST(request: NextRequest) {
     const jobData: any = {
       imageUrl: validated.imageUrl,
       prompt: promptTemplate.prompt,
+      aspectRatio: validated.aspectRatio,
       status: "QUEUED" as const,
       progress: 0,
       duration: 6,

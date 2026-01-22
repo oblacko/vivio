@@ -13,44 +13,70 @@ const KV_REST_API_TOKEN = process.env.KV_REST_API_TOKEN;
 
 // Redis клиент для внешнего Redis
 let externalRedis: any = null;
+let initPromise: Promise<any> | null = null;
 
-// Функция для инициализации внешнего Redis клиента
-async function initializeExternalRedis() {
+// Функция для ленивой инициализации внешнего Redis клиента
+async function getExternalRedis() {
+  // Если уже инициализирован, возвращаем сразу
+  if (externalRedis) {
+    return externalRedis;
+  }
+
+  // Если инициализация уже идет, ждем её завершения
+  if (initPromise) {
+    return initPromise;
+  }
+
+  // Если нет URL, используем fallback
   if (!REDIS_URL) {
-    console.warn("REDIS_URL is not set. Using Vercel KV as fallback.");
     return null;
   }
 
-  try {
-    const client = createClient({
-      url: REDIS_URL,
-    });
+  // Начинаем инициализацию
+  initPromise = (async () => {
+    try {
+      const client = createClient({
+        url: REDIS_URL,
+        socket: {
+          connectTimeout: 10000, // 10 секунд на соединение
+          reconnectStrategy: (retries) => {
+            if (retries > 10) {
+              console.error('Redis retry attempts exhausted');
+              return new Error('Redis retry attempts exhausted');
+            }
+            // Экспоненциальная задержка
+            return Math.min(retries * 100, 3000);
+          },
+        },
+      });
 
-    client.on('error', (err) => {
-      console.error('External Redis Client Error:', err);
-    });
+      client.on('error', (err) => {
+        console.error('External Redis Client Error:', err);
+      });
 
-    await client.connect();
-    console.log('Connected to external Redis');
-    return client;
-  } catch (error) {
-    console.error('Failed to connect to external Redis:', error);
-    return null;
-  }
-}
+      await client.connect();
+      externalRedis = client;
+      console.log('Connected to external Redis');
+      return client;
+    } catch (error) {
+      console.warn('Failed to connect to external Redis, using Vercel KV:', error);
+      initPromise = null; // Сбрасываем промис для повторной попытки
+      return null;
+    }
+  })();
 
-// Инициализируем внешний Redis при импорте
-if (REDIS_URL) {
-  initializeExternalRedis().then(client => {
-    externalRedis = client;
-  }).catch(() => {
-    console.warn("Failed to initialize external Redis, falling back to Vercel KV");
-  });
+  return initPromise;
 }
 
 // Основной Redis клиент с fallback логикой
 export const redis = {
-  // Если внешний Redis доступен, используем его, иначе Vercel KV
+  // Асинхронный метод для получения инстанса
+  async getInstance() {
+    const external = await getExternalRedis();
+    return external || kv;
+  },
+
+  // Синхронный getter для обратной совместимости (всегда возвращает Vercel KV если external не готов)
   get instance() {
     return externalRedis || kv;
   },
@@ -169,6 +195,7 @@ export async function getCache<T>(key: string): Promise<T | null> {
     return data as T;
   } catch (error) {
     console.error("Redis get cache error:", error);
+    // Если Redis недоступен, возвращаем null без падения
     return null;
   }
 }

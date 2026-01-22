@@ -163,6 +163,7 @@ export async function POST(request: NextRequest) {
                   videoUrl: blobResult.url,
                   thumbnailUrl: thumbnailUrl,
                   ogImageUrl: ogImageUrl,
+                  aspectRatio: job.aspectRatio,
                   duration: 6,
                   quality: "HD",
                 };

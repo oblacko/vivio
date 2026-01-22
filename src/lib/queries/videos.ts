@@ -7,6 +7,7 @@ export interface Video {
   thumbnailUrl: string | null;
   duration: number;
   quality: string;
+  aspectRatio?: number | null;
   likesCount: number;
   viewsCount: number;
   shareCount: number;
@@ -17,6 +18,7 @@ export interface Video {
     id: string;
     title: string;
     category: string;
+    participantCount: number;
     tags?: Array<{ id: string; name: string }>;
   };
   user?: {

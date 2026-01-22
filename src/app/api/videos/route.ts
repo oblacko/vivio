@@ -1,4 +1,5 @@
 export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
@@ -44,11 +45,6 @@ export async function GET(request: NextRequest) {
           },
         },
         vibe: {
-          select: {
-            id: true,
-            title: true,
-            category: true,
-          },
           include: {
             tags: {
               include: {
@@ -57,12 +53,18 @@ export async function GET(request: NextRequest) {
             },
           },
         },
+        job: {
+          select: {
+            aspectRatio: true,
+          },
+        },
       },
     });
 
     // Преобразуем теги в удобный формат
     const videosWithTags = videos.map(video => ({
       ...video,
+      aspectRatio: video.aspectRatio || video.job?.aspectRatio,
       vibe: video.vibe ? {
         ...video.vibe,
         tags: video.vibe.tags.map((vt: any) => vt.tag),

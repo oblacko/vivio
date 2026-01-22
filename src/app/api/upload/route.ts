@@ -6,7 +6,7 @@ import { auth } from "@/lib/auth";
 export const runtime = "nodejs";
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
-const BLOB_READ_WRITE_TOKEN = process.env.BLOB_VIVIO_READ_WRITE_TOKEN || process.env.BLOB_READ_WRITE_TOKEN;
+const BLOB_READ_WRITE_TOKEN = process.env.BLOB_READ_WRITE_TOKEN;
 
 export async function OPTIONS(request: NextRequest) {
   return new NextResponse(null, {

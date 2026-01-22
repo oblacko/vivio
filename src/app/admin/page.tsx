@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense, useCallback } from "react";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useVibes } from "@/lib/queries/vibes";
@@ -19,7 +19,7 @@ import { SettingsForm } from "@/components/admin/SettingsForm";
 import { TagsManager } from "@/components/admin/TagsManager";
 import { VibeGenerator } from "@/components/admin/VibeGenerator";
 import { toast } from "sonner";
-import { Plus, Edit, Trash2, AlertCircle, Loader2 } from "lucide-react";
+import { Plus, Edit, Trash2, AlertCircle, Loader2, Search, ChevronLeft, ChevronRight } from "lucide-react";
 import type { Vibe } from "@/lib/queries/vibes";
 
 interface VibeFormData {
@@ -53,12 +53,35 @@ const initialFormData: VibeFormData = {
   isActive: true,
 };
 
-export default function AdminPage() {
+function AdminPageContent() {
   const { user, isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { data: vibes, isLoading: vibesLoading, refetch: refetchVibes } = useVibes();
   
+  // Состояние для фильтров и пагинации
+  const [vibeFilters, setVibeFilters] = useState<any>({
+    page: 1,
+    limit: 20,
+    isActive: "all",
+    sortBy: "createdAt",
+    tagId: "all",
+    search: ""
+  });
+
+  const { data: vibesData, isLoading: vibesLoading, refetch: refetchVibes } = useVibes({ 
+    isAdmin: true,
+    filters: vibeFilters
+  });
+
+  const [tags, setTags] = useState<any[]>([]);
+  
+  useEffect(() => {
+    fetch("/api/admin/tags").then(res => res.json()).then(setTags);
+  }, []);
+
+  const vibes = vibesData?.vibes || [];
+  const pagination = vibesData?.pagination;
+
   const activeSection = searchParams.get("section") || "vibes";
   const [formData, setFormData] = useState<VibeFormData>(initialFormData);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -74,7 +97,7 @@ export default function AdminPage() {
     }
   }, [isLoading, isAuthenticated, user, router]);
 
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     setIsLoadingUsers(true);
     try {
       const response = await fetch(`/api/admin/users?page=${usersPage}&limit=20`);
@@ -86,13 +109,13 @@ export default function AdminPage() {
     } finally {
       setIsLoadingUsers(false);
     }
-  };
+  }, [usersPage]);
 
   useEffect(() => {
     if (isAuthenticated && user?.role === "ADMIN" && activeSection === "users") {
       fetchUsers();
     }
-  }, [usersPage, isAuthenticated, user, activeSection]);
+  }, [usersPage, isAuthenticated, user, activeSection, fetchUsers]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -199,110 +222,182 @@ export default function AdminPage() {
       case "vibes":
         return (
           <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-2xl font-bold tracking-tight">Вайбы</h2>
-                <p className="text-muted-foreground">Управление вайбами приложения</p>
-              </div>
-              <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button onClick={() => { setFormData(initialFormData); setEditingId(null); }}>
-                    <Plus className="w-4 h-4 mr-2" />
-                    Создать вайб
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-                  <DialogHeader>
-                    <DialogTitle>
-                      {editingId ? "Редактировать вайб" : "Создать новый вайб"}
-                    </DialogTitle>
-                    <DialogDescription>
-                      Заполните информацию о вайбе. Все поля обязательны, кроме описания и миниатюры.
-                    </DialogDescription>
-                  </DialogHeader>
-                  
-                  <form onSubmit={handleSubmit} className="space-y-4 mt-4">
-                    <div>
-                      <Label htmlFor="title">Название</Label>
-                      <Input
-                        id="title"
-                        value={formData.title}
-                        onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                        required
-                      />
-                    </div>
+            <div className="flex flex-col gap-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-bold tracking-tight">Вайбы</h2>
+                  <p className="text-muted-foreground">Управление вайбами приложения</p>
+                </div>
+                <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button onClick={() => { setFormData(initialFormData); setEditingId(null); }}>
+                      <Plus className="w-4 h-4 mr-2" />
+                      Создать вайб
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                      <DialogTitle>
+                        {editingId ? "Редактировать вайб" : "Создать новый вайб"}
+                      </DialogTitle>
+                      <DialogDescription>
+                        Заполните информацию о вайбе. Все поля обязательны, кроме описания и миниатюры.
+                      </DialogDescription>
+                    </DialogHeader>
+                    
+                    <form onSubmit={handleSubmit} className="space-y-4 mt-4">
+                      <div>
+                        <Label htmlFor="title">Название</Label>
+                        <Input
+                          id="title"
+                          value={formData.title}
+                          onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                          required
+                        />
+                      </div>
 
-                    <div>
-                      <Label htmlFor="description">Описание</Label>
-                      <Textarea
-                        id="description"
-                        value={formData.description}
-                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                        rows={3}
-                      />
-                    </div>
+                      <div>
+                        <Label htmlFor="description">Описание</Label>
+                        <Textarea
+                          id="description"
+                          value={formData.description}
+                          onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                          rows={3}
+                        />
+                      </div>
 
-                    <div>
-                      <Label htmlFor="category">Категория</Label>
-                      <Select
-                        value={formData.category}
-                        onValueChange={(value: any) => setFormData({ ...formData, category: value })}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="MONUMENTS">Монументы</SelectItem>
-                          <SelectItem value="PETS">Питомцы</SelectItem>
-                          <SelectItem value="FACES">Лица</SelectItem>
-                          <SelectItem value="SEASONAL">Сезонные</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
+                      <div>
+                        <Label htmlFor="category">Категория</Label>
+                        <Select
+                          value={formData.category}
+                          onValueChange={(value: any) => setFormData({ ...formData, category: value })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="MONUMENTS">Монументы</SelectItem>
+                            <SelectItem value="PETS">Питомцы</SelectItem>
+                            <SelectItem value="FACES">Лица</SelectItem>
+                            <SelectItem value="SEASONAL">Сезонные</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
 
-                    <div>
-                      <Label htmlFor="thumbnailUrl">URL миниатюры</Label>
-                      <Input
-                        id="thumbnailUrl"
-                        type="url"
-                        value={formData.thumbnailUrl}
-                        onChange={(e) => setFormData({ ...formData, thumbnailUrl: e.target.value })}
-                        placeholder="https://example.com/image.jpg"
-                      />
-                    </div>
+                      <div>
+                        <Label htmlFor="thumbnailUrl">URL миниатюры</Label>
+                        <Input
+                          id="thumbnailUrl"
+                          type="url"
+                          value={formData.thumbnailUrl}
+                          onChange={(e) => setFormData({ ...formData, thumbnailUrl: e.target.value })}
+                          placeholder="https://example.com/image.jpg"
+                        />
+                      </div>
 
-                    <div>
+                      <div>
                       <Label htmlFor="promptTemplate">Шаблон промпта</Label>
                       <Textarea
                         id="promptTemplate"
                         value={formData.promptTemplate}
                         onChange={(e) => setFormData({ ...formData, promptTemplate: e.target.value })}
-                        rows={4}
+                        rows={8}
                         required
                         placeholder="Transform this image into..."
                       />
-                    </div>
+                      </div>
 
-                    <div className="flex items-center space-x-2">
-                      <Switch
-                        id="isActive"
-                        checked={formData.isActive}
-                        onCheckedChange={(checked) => setFormData({ ...formData, isActive: checked })}
-                      />
-                      <Label htmlFor="isActive">Активен</Label>
-                    </div>
+                      <div className="flex items-center space-x-2">
+                        <Switch
+                          id="isActive"
+                          checked={formData.isActive}
+                          onCheckedChange={(checked) => setFormData({ ...formData, isActive: checked })}
+                        />
+                        <Label htmlFor="isActive">Активен</Label>
+                      </div>
 
-                    <div className="flex gap-2 pt-4">
-                      <Button type="submit" disabled={isSubmitting}>
-                        {isSubmitting ? "Сохранение..." : editingId ? "Обновить" : "Создать"}
-                      </Button>
-                      <Button type="button" variant="outline" onClick={handleDialogClose}>
-                        Отмена
-                      </Button>
+                      <div className="flex gap-2 pt-4">
+                        <Button type="submit" disabled={isSubmitting}>
+                          {isSubmitting ? "Сохранение..." : editingId ? "Обновить" : "Создать"}
+                        </Button>
+                        <Button type="button" variant="outline" onClick={handleDialogClose}>
+                          Отмена
+                        </Button>
+                      </div>
+                    </form>
+                  </DialogContent>
+                </Dialog>
+              </div>
+
+              {/* Фильтры */}
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div className="space-y-2">
+                      <Label>Поиск</Label>
+                      <div className="relative">
+                        <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          placeholder="Название или описание..."
+                          className="pl-8"
+                          value={vibeFilters.search}
+                          onChange={(e) => setVibeFilters({ ...vibeFilters, search: e.target.value, page: 1 })}
+                        />
+                      </div>
                     </div>
-                  </form>
-                </DialogContent>
-              </Dialog>
+                    <div className="space-y-2">
+                      <Label>Статус</Label>
+                      <Select
+                        value={vibeFilters.isActive}
+                        onValueChange={(val) => setVibeFilters({ ...vibeFilters, isActive: val, page: 1 })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Все" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Все</SelectItem>
+                          <SelectItem value="true">Активные</SelectItem>
+                          <SelectItem value="false">Неактивные</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Тег</Label>
+                      <Select
+                        value={vibeFilters.tagId}
+                        onValueChange={(val) => setVibeFilters({ ...vibeFilters, tagId: val, page: 1 })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Любой тег" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Любой тег</SelectItem>
+                          {tags.map((tag: any) => (
+                            <SelectItem key={tag.id} value={tag.id}>
+                              {tag.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Сортировка</Label>
+                      <Select
+                        value={vibeFilters.sortBy}
+                        onValueChange={(val) => setVibeFilters({ ...vibeFilters, sortBy: val, page: 1 })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="createdAt">По дате</SelectItem>
+                          <SelectItem value="participantCount">По просмотрам</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
 
             {vibesLoading ? (
@@ -311,12 +406,39 @@ export default function AdminPage() {
                 <p className="text-muted-foreground">Загрузка вайбов...</p>
               </div>
             ) : vibes && vibes.length > 0 ? (
-              <VibesTable
-                vibes={vibes}
-                onEdit={handleEdit}
-                onToggleActive={handleToggleActive}
-                onDelete={handleDelete}
-              />
+              <div className="space-y-4">
+                <VibesTable
+                  vibes={vibes}
+                  onEdit={handleEdit}
+                  onToggleActive={handleToggleActive}
+                  onDelete={handleDelete}
+                />
+                
+                {/* Пагинация */}
+                {pagination && pagination.pages > 1 && (
+                  <div className="flex items-center justify-center gap-2 py-4">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => setVibeFilters({ ...vibeFilters, page: vibeFilters.page - 1 })}
+                      disabled={vibeFilters.page === 1}
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <span className="text-sm">
+                      Страница {pagination.currentPage} из {pagination.pages}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => setVibeFilters({ ...vibeFilters, page: vibeFilters.page + 1 })}
+                      disabled={vibeFilters.page === pagination.pages}
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
+              </div>
             ) : (
               <div className="rounded-md border">
                 <div className="flex items-center justify-center py-12">
@@ -324,7 +446,7 @@ export default function AdminPage() {
                     <AlertCircle className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
                     <p className="text-muted-foreground">Вайбы не найдены</p>
                     <p className="text-sm text-muted-foreground mt-2">
-                      Создайте первый вайб, нажав на кнопку выше
+                      Попробуйте изменить параметры фильтрации или создать новый вайб
                     </p>
                   </div>
                 </div>
@@ -396,27 +518,28 @@ export default function AdminPage() {
     return null;
   }
 
-  const sectionTitles: Record<string, string> = {
-    vibes: "Вайбы",
-    "vibes-generator": "Генерация вайбов",
-    tags: "Теги",
-    users: "Пользователи",
-    settings: "Настройки",
-  };
-
   return (
-    <div className="container mx-auto max-w-7xl py-6 px-4">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold tracking-tight">
-          {sectionTitles[activeSection] || "Админ-панель"}
-        </h1>
-        <p className="text-muted-foreground mt-2">
-          Управление системой
-        </p>
-      </div>
-      <div className="flex flex-1 flex-col gap-4">
-        {renderContent()}
+    <div className="min-h-screen bg-white light">
+      <div className="container mx-auto max-w-7xl py-6 px-4">
+        <div className="flex flex-1 flex-col gap-4">
+          {renderContent()}
+        </div>
       </div>
     </div>
+  );
+}
+
+export default function AdminPage() {
+  return (
+    <Suspense fallback={
+      <main className="container mx-auto px-4 py-8 flex items-center justify-center min-h-[60vh]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Загрузка...</p>
+        </div>
+      </main>
+    }>
+      <AdminPageContent />
+    </Suspense>
   );
 }

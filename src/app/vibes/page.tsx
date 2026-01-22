@@ -8,7 +8,7 @@ function VibesList() {
   const { data: vibes, isLoading, error } = useVibes();
 
   // Debug logging
-  console.log("VibesPage state:", { isLoading, error, vibesCount: vibes?.length });
+  console.log("VibesPage state:", { isLoading, error, vibesCount: vibes?.vibes?.length });
 
   if (isLoading) {
     return (
@@ -26,7 +26,7 @@ function VibesList() {
   }
 
   // Используем vibes или пустой массив
-  const vibesList = vibes || [];
+  const vibesList = vibes?.vibes || [];
 
   if (vibesList.length === 0) {
     return (

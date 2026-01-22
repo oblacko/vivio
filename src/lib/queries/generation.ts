@@ -50,7 +50,7 @@ export function useInitiateGeneration() {
   const { setJobId, reset } = useGenerationStore();
 
   return useMutation({
-    mutationFn: async (data: { vibeId?: string; imageUrl: string; userId?: string }) => {
+    mutationFn: async (data: { vibeId?: string; imageUrl: string; aspectRatio?: number; userId?: string }) => {
       const response = await fetch("/api/generate/initiate", {
         method: "POST",
         headers: {

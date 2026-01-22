@@ -7,6 +7,8 @@ import { Navigation } from "@/components/navigation";
 import { Toaster } from "@/components/ui/sonner";
 import FloatingUploadButton from "@/components/upload/FloatingUploadButton";
 import { UploadProvider } from "@/lib/contexts/upload-context";
+import { WavyBackgroundWrapper } from "@/components/WavyBackgroundWrapper";
+import { Suspense } from "react";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -26,13 +28,18 @@ export default function RootLayout({
   return (
     <html lang="ru">
       <body className={inter.className}>
+        <WavyBackgroundWrapper />
         <AuthSessionProvider>
           <UploadProvider>
-            <div className="px-4 pt-4">
-              <Navigation />
+            <div className="px-4 pt-4 relative z-10">
+              <Suspense fallback={<div className="h-16" />}>
+                <Navigation />
+              </Suspense>
             </div>
             <QueryProvider>
-              {children}
+              <div className="relative z-10">
+                {children}
+              </div>
               <FloatingUploadButton />
             </QueryProvider>
             <Toaster />

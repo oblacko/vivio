@@ -3,6 +3,7 @@ import React, { useRef } from "react";
 import { motion } from "framer-motion";
 import { IconUpload } from "@tabler/icons-react";
 import { useDropzone } from "react-dropzone";
+import { Badge } from "@/components/ui/badge";
 
 const mainVariant = {
   initial: {
@@ -82,13 +83,15 @@ export const FileUpload = ({
     <div className="w-full h-full" {...getRootProps()}>
       <motion.div
         onClick={handleClick}
+        whileHover={!disabled ? { scale: 1.01 } : {}}
+        transition={{ duration: 0.2 }}
         className={cn(
-          "p-8 group/file block rounded-lg w-full h-full relative overflow-hidden",
+          "p-10 group/file block rounded-xl w-full h-full relative overflow-hidden transition-all duration-300",
           disabled 
-            ? "bg-gray-50 cursor-not-allowed opacity-50"
+            ? "bg-muted/30 cursor-not-allowed opacity-50 border-2 border-dashed border-muted"
             : currentIsDragging
-            ? "border-2 border-dashed border-blue-500 bg-blue-50 cursor-pointer"
-            : "cursor-pointer"
+            ? "border-2 border-dashed border-primary bg-gradient-to-br from-primary/10 via-primary/5 to-primary/10 cursor-pointer shadow-lg animate-pulse"
+            : "cursor-pointer bg-gradient-to-br from-primary/5 via-background to-primary/5 border-2 border-dashed border-muted-foreground/25 hover:border-primary/50 hover:shadow-md"
         )}
       >
         <input
@@ -147,15 +150,15 @@ export const FileUpload = ({
                 >
                   {currentIsDragging ? (
                     <motion.p
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      className="text-blue-600 dark:text-blue-400 flex flex-col items-center text-sm"
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className="text-primary flex flex-col items-center text-base font-medium"
                     >
                       Отпустите файл
-                      <IconUpload className="h-4 w-4 mt-1" />
+                      <IconUpload className="h-6 w-6 mt-2" />
                     </motion.p>
                   ) : (
-                    <IconUpload className="h-5 w-5 text-gray-400 dark:text-neutral-400" />
+                    <IconUpload className="h-8 w-8 text-primary" />
                   )}
                 </motion.div>
 
@@ -169,28 +172,69 @@ export const FileUpload = ({
             )}
           </div>
           
-          <div className="relative z-20 mt-6 text-center">
-            <p className="text-lg mb-2 font-medium text-gray-700 dark:text-gray-300">
+          <div className="relative z-20 mt-8 text-center">
+            <motion.h3 
+              className="text-2xl mb-3 font-semibold"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+            >
               {currentIsDragging
                 ? "Отпустите файл для загрузки"
                 : file 
                 ? "Файл выбран"
-                : "Перетащите файл сюда"}
-            </p>
+                : "Загрузите изображение"}
+            </motion.h3>
             {!file && (
               <>
-                <p className="text-sm text-gray-500 mb-4">или</p>
-                <button
+                <motion.p 
+                  className="text-sm text-muted-foreground mb-6"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.2 }}
+                >
+                  Перетащите файл сюда или выберите с устройства
+                </motion.p>
+                <motion.button
                   type="button"
                   onClick={(e) => {
                     e.stopPropagation();
                     handleClick();
                   }}
                   disabled={disabled}
-                  className="px-4 py-2 bg-white border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  whileHover={!disabled ? { scale: 1.05 } : {}}
+                  whileTap={!disabled ? { scale: 0.95 } : {}}
+                  className={cn(
+                    "px-6 py-3 rounded-lg text-sm font-medium transition-all duration-200",
+                    disabled
+                      ? "bg-muted text-muted-foreground cursor-not-allowed"
+                      : "bg-primary text-primary-foreground hover:bg-primary/90 shadow-md hover:shadow-lg"
+                  )}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 }}
                 >
                   Выбрать файл
-                </button>
+                </motion.button>
+                <motion.div 
+                  className="flex gap-2 mt-6 justify-center flex-wrap"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.4 }}
+                >
+                  <Badge variant="outline" className="text-xs">PNG</Badge>
+                  <Badge variant="outline" className="text-xs">JPG</Badge>
+                  <Badge variant="outline" className="text-xs">JPEG</Badge>
+                  <Badge variant="outline" className="text-xs">WEBP</Badge>
+                </motion.div>
+                <motion.p 
+                  className="text-xs text-muted-foreground mt-4"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.5 }}
+                >
+                  Максимальный размер файла: 10MB
+                </motion.p>
               </>
             )}
           </div>

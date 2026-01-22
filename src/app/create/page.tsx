@@ -17,7 +17,7 @@ function CreatePageContent() {
   
   const [selectedVibeId, setSelectedVibeId] = useState<string | null>(vibeIdFromQuery);
   const router = useRouter();
-  const { data: vibes, isLoading, error } = useVibes();
+  const { data: vibesData, isLoading, error } = useVibes();
   const { isAuthenticated, isLoading: authLoading } = useAuth();
 
   // Устанавливаем вайб из query параметра при загрузке
@@ -33,7 +33,7 @@ function CreatePageContent() {
   };
 
   // Debug logging
-  console.log("CreatePage state:", { isLoading, error, vibesCount: vibes?.length });
+  console.log("CreatePage state:", { isLoading, error, vibesCount: vibesData?.vibes?.length });
 
   if (error) {
     console.error("CreatePage error:", error);
@@ -41,7 +41,7 @@ function CreatePageContent() {
   }
 
   // Используем vibes или пустой массив
-  const vibesList = vibes || [];
+  const vibesList = vibesData?.vibes || [];
 
   // Проверка авторизации
   if (authLoading) {
