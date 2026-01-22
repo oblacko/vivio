@@ -1,19 +1,21 @@
 export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
 import { auth } from "@/lib/auth";
 
 interface RouteParams {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 export async function GET(
   request: NextRequest,
   { params }: RouteParams
 ) {
+  const resolvedParams = await params;
   try {
     // Проверка авторизации и роли
     const session = await auth();
@@ -34,7 +36,7 @@ export async function GET(
 
     // Проверка существования пользователя
     const user = await prisma.user.findUnique({
-      where: { id: params.id },
+      where: { id: resolvedParams.id },
       select: { id: true },
     });
 
@@ -56,7 +58,7 @@ export async function GET(
 
     // Построение условий фильтрации
     const where: any = {
-      userId: params.id,
+      userId: resolvedParams.id,
     };
 
     if (type) {

@@ -41,22 +41,49 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    // Преобразуем теги в удобный формат
-    const favoritesWithTags = favorites.map(fav => ({
-      ...fav,
-      vibe: {
-        ...fav.vibe,
-        tags: fav.vibe.tags.map(vt => vt.tag),
-      },
-    }));
+    // Преобразуем теги в удобный формат и фильтруем удаленные вайбы
+    const favoritesWithTags = favorites
+      .filter(fav => fav.vibe !== null) // Фильтруем удаленные вайбы
+      .map(fav => {
+        const vibe = fav.vibe!;
+        return {
+          id: fav.id,
+          userId: fav.userId,
+          vibeId: fav.vibeId,
+          createdAt: fav.createdAt.toISOString(),
+          vibe: {
+            id: vibe.id,
+            title: vibe.title,
+            description: vibe.description,
+            category: vibe.category,
+            thumbnailUrl: vibe.thumbnailUrl,
+            promptTemplate: vibe.promptTemplate,
+            participantCount: vibe.participantCount,
+            isActive: vibe.isActive,
+            createdAt: vibe.createdAt.toISOString(),
+            updatedAt: vibe.updatedAt.toISOString(),
+            tags: vibe.tags?.map(vt => ({
+              id: vt.tag.id,
+              name: vt.tag.name,
+              createdAt: vt.tag.createdAt.toISOString(),
+            })) ?? [],
+            _count: {
+              videos: vibe._count?.videos ?? 0,
+            },
+          },
+        };
+      });
 
     return NextResponse.json(favoritesWithTags);
   } catch (error) {
     console.error("Get favorites error:", error);
+    const errorMessage = error instanceof Error ? error.message : "Failed to fetch favorites";
+    const errorStack = error instanceof Error ? error.stack : undefined;
+    console.error("Error details:", { errorMessage, errorStack });
+    
     return NextResponse.json(
       {
-        error:
-          error instanceof Error ? error.message : "Failed to fetch favorites",
+        error: errorMessage,
       },
       { status: 500 }
     );

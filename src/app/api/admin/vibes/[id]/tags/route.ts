@@ -1,4 +1,5 @@
 export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
@@ -7,9 +8,9 @@ import { z } from "zod";
 import { deleteCache } from "@/lib/redis/client";
 
 interface RouteParams {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 const addTagSchema = z.object({
@@ -22,6 +23,7 @@ const removeTagSchema = z.object({
 
 export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
+    const resolvedParams = await params;
     const session = await auth();
 
     if (!session?.user) {
@@ -38,7 +40,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    const { id: vibeId } = params;
+    const { id: vibeId } = resolvedParams;
     const body = await request.json();
     const { tagId } = addTagSchema.parse(body);
 
@@ -116,6 +118,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
+    const resolvedParams = await params;
     const session = await auth();
 
     if (!session?.user) {
@@ -132,7 +135,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    const { id: vibeId } = params;
+    const { id: vibeId } = resolvedParams;
     const body = await request.json();
     const { tagId } = removeTagSchema.parse(body);
 

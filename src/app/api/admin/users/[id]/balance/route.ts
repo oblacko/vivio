@@ -1,4 +1,5 @@
 export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
@@ -12,15 +13,16 @@ const updateBalanceSchema = z.object({
 });
 
 interface RouteParams {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 export async function PATCH(
   request: NextRequest,
   { params }: RouteParams
 ) {
+  const resolvedParams = await params;
   try {
     // Проверка авторизации и роли
     const session = await auth();
@@ -45,7 +47,7 @@ export async function PATCH(
 
     // Проверка существования пользователя
     const user = await prisma.user.findUnique({
-      where: { id: params.id },
+      where: { id: resolvedParams.id },
       select: { id: true, balance: true },
     });
 
@@ -72,7 +74,7 @@ export async function PATCH(
         : user.balance - validatedData.amount;
 
       const updatedUser = await tx.user.update({
-        where: { id: params.id },
+        where: { id: resolvedParams.id },
         data: { balance: newBalance },
         select: {
           id: true,
@@ -83,7 +85,7 @@ export async function PATCH(
       // Создание транзакции
       const transaction = await tx.creditTransaction.create({
         data: {
-          userId: params.id,
+          userId: resolvedParams.id,
           type: validatedData.type,
           amount: validatedData.amount,
           description: validatedData.description || 

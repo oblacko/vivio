@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { VideoCard } from "@/components/video/VideoCard";
 import { VideoGallery } from "@/components/video/VideoGallery";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useVideos } from "@/lib/queries/videos";
+import { useTags } from "@/lib/queries/tags";
 import { useToggleFavorite, useFavorites } from "@/lib/queries/favorites";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { useUpload } from "@/lib/contexts/upload-context";
@@ -15,76 +16,106 @@ import { Sparkles, TrendingUp, Clock, Eye, Play } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
 
-type CategoryFilter = "ALL" | "MONUMENTS" | "PETS" | "FACES" | "SEASONAL";
-
-const categories = [
-  { value: "ALL" as CategoryFilter, label: "Все" },
-  { value: "MONUMENTS" as CategoryFilter, label: "Монументы" },
-  { value: "PETS" as CategoryFilter, label: "Питомцы" },
-  { value: "FACES" as CategoryFilter, label: "Лица" },
-  { value: "SEASONAL" as CategoryFilter, label: "Сезонные" },
-];
-
 function HeroSection() {
   const { isAuthenticated } = useAuth();
   const { openUpload } = useUpload();
 
   return (
-    <div className="relative py-20 md:py-32 mb-16">
-      <div className="max-w-4xl mx-auto text-center space-y-8 px-6">
-        <div className="inline-flex items-center gap-2.5 px-5 py-2.5 rounded-full bg-primary/10 border border-primary/20 mb-2 backdrop-blur-sm">
-          <Sparkles className="w-4 h-4 text-primary" />
-          <span className="text-sm font-medium text-foreground">AI-генерация видео</span>
+    <div className="relative py-16 md:py-28 mb-16 overflow-hidden">
+      {/* Animated Gradient Background */}
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-purple-500/10 to-pink-500/20 bg-[length:200%_200%] animate-gradient-shift" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_120%,rgba(120,119,198,0.3),rgba(255,255,255,0))]" />
+      
+      <div className="relative max-w-5xl mx-auto text-center space-y-6 md:space-y-8 px-4 md:px-6">
+        {/* Badge */}
+        <div className="inline-flex items-center gap-2.5 px-4 md:px-5 py-2 md:py-2.5 rounded-full bg-white/10 border border-white/20 backdrop-blur-md shadow-lg hover:bg-white/15 transition-all duration-300">
+          <Sparkles className="w-3 h-3 md:w-4 md:h-4 text-primary animate-pulse" />
+          <span className="text-xs md:text-sm font-semibold bg-gradient-to-r from-primary to-purple-400 bg-clip-text text-transparent">
+            AI-генерация видео
+          </span>
         </div>
         
-        <h1 className="text-5xl md:text-7xl font-bold tracking-tight leading-tight text-white">
-          Оживите свои<br />фотографии
+        {/* Main Heading */}
+        <h1 className="text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-extrabold tracking-tight leading-[1.1] md:leading-tight">
+          <span className="bg-gradient-to-r from-white via-white to-white/80 bg-clip-text text-transparent">
+            Оживите свои
+          </span>
+          <br />
+          <span className="bg-gradient-to-r from-primary via-purple-400 to-pink-400 bg-clip-text text-transparent bg-[length:200%_200%] animate-gradient-text">
+            фотографии
+          </span>
         </h1>
         
-        <p className="text-lg md:text-xl text-slate-300 max-w-2xl mx-auto leading-relaxed">
+        {/* Description */}
+        <p className="text-base md:text-lg lg:text-xl text-slate-300 max-w-2xl mx-auto leading-relaxed font-medium">
           Создавайте удивительные 6-секундные видео с помощью AI.
-          Превратите статичные изображения в динамические истории.
+          <br className="hidden sm:block" />
+          <span className="text-slate-400">Превратите статичные изображения в динамические истории.</span>
         </p>
 
-        <div className="flex flex-col sm:flex-row gap-3 justify-center pt-6">
+        {/* CTA Buttons */}
+        <div className="flex flex-col sm:flex-row gap-3 md:gap-4 justify-center pt-4 md:pt-6">
           {isAuthenticated ? (
-            <Button size="lg" onClick={openUpload} className="gap-2 h-12 px-8 text-base rounded-xl backdrop-blur-sm">
-              <Play className="w-5 h-5" />
+            <Button 
+              size="lg" 
+              onClick={openUpload} 
+              className="gap-2 h-12 md:h-14 px-6 md:px-10 text-base md:text-lg font-semibold rounded-2xl bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-600/90 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
+            >
+              <Play className="w-4 h-4 md:w-5 md:h-5" />
               Создать видео
             </Button>
           ) : (
             <Link href={`/signup?callbackUrl=${encodeURIComponent("/")}`}>
-              <Button size="lg" className="gap-2 h-12 px-8 text-base rounded-xl backdrop-blur-sm">
-                <Sparkles className="w-5 h-5" />
+              <Button 
+                size="lg" 
+                className="gap-2 h-12 md:h-14 px-6 md:px-10 text-base md:text-lg font-semibold rounded-2xl bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-600/90 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
+              >
+                <Sparkles className="w-4 h-4 md:w-5 md:h-5" />
                 Начать бесплатно
               </Button>
             </Link>
           )}
-          <Link href="/challenges">
-            <Button size="lg" variant="outline" className="h-12 px-8 text-base rounded-xl backdrop-blur-sm">
-              Смотреть челленджи
-            </Button>
-          </Link>
         </div>
 
-        <div className="flex items-center justify-center gap-10 pt-12 text-sm flex-wrap">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center backdrop-blur-sm">
-              <Clock className="w-4 h-4 text-primary" />
+        {/* Features Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-6 pt-8 md:pt-12 max-w-3xl mx-auto">
+          <div className="group relative p-4 md:p-5 rounded-2xl bg-white/5 backdrop-blur-md border border-white/10 hover:bg-white/10 transition-all duration-300 hover:scale-105 hover:shadow-xl">
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl" />
+            <div className="relative flex flex-col items-center gap-3 text-center">
+              <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center group-hover:scale-110 transition-transform">
+                <Clock className="w-5 h-5 md:w-6 md:h-6 text-primary" />
+              </div>
+              <div>
+                <div className="font-bold text-base md:text-lg text-white mb-1">6 секунд</div>
+                <div className="text-xs md:text-sm text-slate-400">Идеальная длина</div>
+              </div>
             </div>
-            <span className="text-foreground font-medium">6 секунд</span>
           </div>
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center backdrop-blur-sm">
-              <Sparkles className="w-4 h-4 text-primary" />
+
+          <div className="group relative p-4 md:p-5 rounded-2xl bg-white/5 backdrop-blur-md border border-white/10 hover:bg-white/10 transition-all duration-300 hover:scale-105 hover:shadow-xl">
+            <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl" />
+            <div className="relative flex flex-col items-center gap-3 text-center">
+              <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-gradient-to-br from-purple-500/20 to-purple-500/5 flex items-center justify-center group-hover:scale-110 transition-transform">
+                <Sparkles className="w-5 h-5 md:w-6 md:h-6 text-purple-400" />
+              </div>
+              <div>
+                <div className="font-bold text-base md:text-lg text-white mb-1">AI-powered</div>
+                <div className="text-xs md:text-sm text-slate-400">Умная генерация</div>
+              </div>
             </div>
-            <span className="text-foreground font-medium">AI-powered</span>
           </div>
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center backdrop-blur-sm">
-              <TrendingUp className="w-4 h-4 text-primary" />
+
+          <div className="group relative p-4 md:p-5 rounded-2xl bg-white/5 backdrop-blur-md border border-white/10 hover:bg-white/10 transition-all duration-300 hover:scale-105 hover:shadow-xl sm:col-span-1 col-span-1">
+            <div className="absolute inset-0 bg-gradient-to-br from-pink-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl" />
+            <div className="relative flex flex-col items-center gap-3 text-center">
+              <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-gradient-to-br from-pink-500/20 to-pink-500/5 flex items-center justify-center group-hover:scale-110 transition-transform">
+                <TrendingUp className="w-5 h-5 md:w-6 md:h-6 text-pink-400" />
+              </div>
+              <div>
+                <div className="font-bold text-base md:text-lg text-white mb-1">HD качество</div>
+                <div className="text-xs md:text-sm text-slate-400">Четкая картинка</div>
+              </div>
             </div>
-            <span className="text-foreground font-medium">HD качество</span>
           </div>
         </div>
       </div>
@@ -93,8 +124,9 @@ function HeroSection() {
 }
 
 function VideosList() {
-  const [selectedCategory, setSelectedCategory] = useState<CategoryFilter>("ALL");
+  const [selectedTagId, setSelectedTagId] = useState<string | null>(null);
   const { data: videos, isLoading, error } = useVideos();
+  const { data: tags, isLoading: isLoadingTags } = useTags();
   const { data: favorites } = useFavorites();
   const { isAuthenticated } = useAuth();
   const toggleFavorite = useToggleFavorite();
@@ -102,10 +134,29 @@ function VideosList() {
   // Создаем Set из ID избранных вайбов для быстрой проверки
   const favoriteVibeIds = new Set(favorites?.map(f => f.vibeId) || []);
 
-  // Фильтрация видео по категории
+  // Получаем уникальные теги из всех видео
+  const availableTags = useMemo(() => {
+    if (!videos) return [];
+    const tagMap = new Map<string, { id: string; name: string; count: number }>();
+    
+    videos.forEach((video) => {
+      video.vibe?.tags?.forEach((tag) => {
+        const existing = tagMap.get(tag.id);
+        if (existing) {
+          existing.count++;
+        } else {
+          tagMap.set(tag.id, { id: tag.id, name: tag.name, count: 1 });
+        }
+      });
+    });
+    
+    return Array.from(tagMap.values()).sort((a, b) => b.count - a.count);
+  }, [videos]);
+
+  // Фильтрация видео по тегу
   const filteredVideos = videos?.filter((video) => {
-    if (selectedCategory === "ALL") return true;
-    return video.vibe?.category === selectedCategory;
+    if (!selectedTagId) return true;
+    return video.vibe?.tags?.some((tag) => tag.id === selectedTagId);
   });
 
   // Если нужно перемешать видео для "рандомности"
@@ -126,12 +177,12 @@ function VideosList() {
     }
   };
 
-  if (isLoading) {
+  if (isLoading || isLoadingTags) {
     return (
       <div className="space-y-6">
         <div className="flex gap-2 overflow-x-auto pb-2">
-          {categories.map((cat) => (
-            <Skeleton key={cat.value} className="h-10 w-24 rounded-full" />
+          {[...Array(5)].map((_, i) => (
+            <Skeleton key={i} className="h-10 w-24 rounded-full" />
           ))}
         </div>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
@@ -153,20 +204,42 @@ function VideosList() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Category Filters */}
-      <div className="flex gap-2 overflow-x-auto pb-2">
-        {categories.map((cat) => (
+    <div className="space-y-6 md:space-y-8">
+      {/* Section Header */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <h2 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent mb-2">
+            Галерея видео
+          </h2>
+          <p className="text-sm md:text-base text-muted-foreground">
+            Изучайте созданные сообществом AI-видео
+          </p>
+        </div>
+      </div>
+
+      {/* Tag Filters */}
+      <div className="relative">
+        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
           <Button
-            key={cat.value}
-            variant={selectedCategory === cat.value ? "default" : "outline"}
+            variant={selectedTagId === null ? "default" : "outline"}
             size="sm"
-            onClick={() => setSelectedCategory(cat.value)}
-            className="rounded-full whitespace-nowrap"
+            onClick={() => setSelectedTagId(null)}
+            className="rounded-full whitespace-nowrap shadow-sm hover:shadow-md transition-all duration-200 hover:scale-105"
           >
-            {cat.label}
+            Все
           </Button>
-        ))}
+          {availableTags.map((tag) => (
+            <Button
+              key={tag.id}
+              variant={selectedTagId === tag.id ? "default" : "outline"}
+              size="sm"
+              onClick={() => setSelectedTagId(tag.id)}
+              className="rounded-full whitespace-nowrap shadow-sm hover:shadow-md transition-all duration-200 hover:scale-105"
+            >
+              {tag.name}
+            </Button>
+          ))}
+        </div>
       </div>
 
       {/* Videos Gallery */}
@@ -191,9 +264,9 @@ function VideosList() {
       ) : (
         <div className="text-center py-12 border rounded-lg">
           <p className="text-muted-foreground">
-            {selectedCategory === "ALL" 
+            {selectedTagId === null 
               ? "Видео пока не загружены" 
-              : `Видео в категории "${categories.find(c => c.value === selectedCategory)?.label}" не найдены`}
+              : `Видео с тегом "${availableTags.find(t => t.id === selectedTagId)?.name}" не найдены`}
           </p>
         </div>
       )}
@@ -210,15 +283,6 @@ export default function HomePage() {
 
       {/* Main Videos Section */}
       <div className="mb-20">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h2 className="text-3xl md:text-4xl font-bold mb-2 tracking-tight text-white">Популярные видео</h2>
-            <p className="text-slate-400 text-lg">
-              Откройте для себя удивительные видео, созданные нашим сообществом
-            </p>
-          </div>
-        </div>
-
         <VideosList />
       </div>
 

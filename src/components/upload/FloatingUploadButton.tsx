@@ -7,7 +7,6 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { FileUpload } from "./FileUpload";
-import { GridPattern } from "@/components/ui/file-upload";
 import { Plus } from "lucide-react";
 import { useUpload } from "@/lib/contexts/upload-context";
 import { useAuth } from "@/lib/hooks/useAuth";
@@ -57,12 +56,10 @@ export default function FloatingUploadButton() {
             {/* Скрытый заголовок для доступности */}
             <SheetTitle className="sr-only">Создание видео</SheetTitle>
             
-            {/* Фоновый паттерн для всего Sheet */}
-            <div className="absolute inset-0 [mask-image:radial-gradient(ellipse_at_center,white,transparent)] pointer-events-none overflow-hidden">
-              <GridPattern />
-            </div>
+            {/* Градиентный фон */}
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-purple-500/5 to-pink-500/5 pointer-events-none" />
             
-            <div className="p-6 flex-1 flex flex-col relative z-10">
+            <div className="p-4 md:p-6 flex-1 flex flex-col relative z-10">
               <FileUpload onClose={closeUpload} />
             </div>
           </SheetContent>

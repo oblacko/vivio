@@ -31,13 +31,13 @@ export default function RootLayout({
         <WavyBackgroundWrapper />
         <AuthSessionProvider>
           <UploadProvider>
-            <div className="px-4 pt-4 relative z-10">
+            <div className="px-4 pt-4">
               <Suspense fallback={<div className="h-16" />}>
                 <Navigation />
               </Suspense>
             </div>
             <QueryProvider>
-              <div className="relative z-10">
+              <div>
                 {children}
               </div>
               <FloatingUploadButton />

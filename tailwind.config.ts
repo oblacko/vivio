@@ -68,6 +68,31 @@ const config: Config = {
   			xl: 'calc(var(--radius) + 4px)',
   			'2xl': 'calc(var(--radius) + 8px)',
   			'3xl': 'calc(var(--radius) + 12px)'
+  		},
+  		keyframes: {
+  			'gradient-shift': {
+  				'0%, 100%': {
+  					'background-position': '0% 50%'
+  				},
+  				'50%': {
+  					'background-position': '100% 50%'
+  				}
+  			},
+  			'gradient-text': {
+  				'0%, 100%': {
+  					'background-position': '0% 50%'
+  				},
+  				'50%': {
+  					'background-position': '100% 50%'
+  				}
+  			}
+  		},
+  		animation: {
+  			'gradient-shift': 'gradient-shift 8s ease infinite',
+  			'gradient-text': 'gradient-text 3s ease infinite'
+  		},
+  		backgroundSize: {
+  			'200': '200% 200%'
   		}
   	}
   },

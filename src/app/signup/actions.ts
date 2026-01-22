@@ -51,14 +51,18 @@ export async function signupWithCredentials(formData: FormData, callbackUrl?: st
     });
 
     // Автоматически входим после регистрации
-    await signIn("credentials", {
+    const signInResult = await signIn("credentials", {
       email: validated.email,
       password: validated.password,
       redirect: false,
     });
 
-    // Редиректим на callbackUrl или главную
-    redirect(callbackUrl || "/");
+    if (signInResult?.error) {
+      return { error: "Аккаунт создан, но не удалось войти. Попробуйте войти вручную." };
+    }
+
+    // При успехе возвращаем success, редирект будет на клиенте
+    return { success: true, callbackUrl: callbackUrl || "/" };
   } catch (error) {
     if (error instanceof z.ZodError) {
       return { error: error.issues[0].message };
@@ -68,8 +72,7 @@ export async function signupWithCredentials(formData: FormData, callbackUrl?: st
       return { error: "Произошла ошибка при регистрации" };
     }
 
-    // Если это редирект (успешная регистрация), пробрасываем его
-    throw error;
+    return { error: "Произошла ошибка при регистрации" };
   }
 }
 

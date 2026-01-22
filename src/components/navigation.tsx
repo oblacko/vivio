@@ -4,7 +4,7 @@ import React from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { Home, Play, Sparkles, Plus, LogOut, User, MenuIcon, Heart, Shield, Tags, Users, Settings, Wand2 } from "lucide-react";
+import { Home, Play, Sparkles, Plus, LogOut, User, MenuIcon, Heart, Shield, Tags, Users, Settings, Wand2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUpload } from "@/lib/contexts/upload-context";
 import { useAuth } from "@/lib/hooks/useAuth";
@@ -18,7 +18,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Sheet, SheetContent, SheetFooter } from "@/components/ui/sheet";
 
 interface NavigationItem {
   name: string;
@@ -88,13 +87,20 @@ const adminNavigation: NavigationItem[] = [
 export function Navigation() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const { openUpload } = useUpload();
+  const { openUpload, closeUpload } = useUpload();
   const { user, isAuthenticated } = useAuth();
   const [open, setOpen] = React.useState(false);
 
   const isAdminPage = pathname === "/admin";
   const showAdminNav = isAdminPage && user?.role === "ADMIN";
   const currentNav = showAdminNav ? adminNavigation : navigation;
+
+  // Закрываем upload sheet когда открывается мобильное меню
+  React.useEffect(() => {
+    if (open) {
+      closeUpload();
+    }
+  }, [open, closeUpload]);
 
   const handleSignOut = async () => {
     await signOut({ callbackUrl: "/" });
@@ -113,7 +119,7 @@ export function Navigation() {
   return (
     <header
       className={cn(
-        "sticky top-6 z-50",
+        "sticky top-6 z-[100]",
         "mx-auto w-full max-w-6xl rounded-2xl border border-border/40 shadow-sm",
         "bg-background/80 supports-[backdrop-filter]:bg-background/60 backdrop-blur-xl",
       )}
@@ -242,97 +248,175 @@ export function Navigation() {
           </div>
 
           {/* Мобильное меню */}
-          <Sheet open={open} onOpenChange={setOpen}>
-            <Button
-              size="icon"
-              variant="outline"
-              onClick={() => setOpen(!open)}
-              className="lg:hidden"
-            >
-              <MenuIcon className="size-4" />
-            </Button>
-            <SheetContent
-              className="bg-background/95 supports-[backdrop-filter]:bg-background/80 gap-0 backdrop-blur-lg"
-              side="left"
-            >
-              <div className="grid gap-y-2 overflow-y-auto px-4 pt-12 pb-5">
-                {currentNav.filter(item => !item.hidden).map((item) => {
-                  const Icon = item.icon;
-                  let isActive = false;
-                  
-                  if (showAdminNav) {
-                    // Для админских ссылок проверяем searchParams
-                    const section = searchParams.get("section") || "vibes";
-                    isActive = item.href.includes(`section=${section}`);
-                  } else {
-                    // Для обычных ссылок проверяем pathname
-                    isActive = pathname === item.href ||
-                      (item.href !== "/" && pathname.startsWith(item.href));
-                  }
+          <Button
+            size="icon"
+            variant="outline"
+            onClick={() => setOpen(!open)}
+            className="lg:hidden"
+          >
+            <MenuIcon className="size-4" />
+          </Button>
 
-                  // Для кнопки "Создать видео" используем onClick вместо Link
-                  if (item.name === "Создать видео") {
-                    return (
-                      <Button
-                        key={item.name}
-                        variant={isActive ? "default" : "ghost"}
-                        onClick={(e) => {
-                          e.preventDefault();
-                          openUpload();
-                          setOpen(false);
-                        }}
-                        className="justify-start gap-2"
-                      >
-                        <Icon className="w-5 h-5" />
-                        <span>{item.name}</span>
-                      </Button>
-                    );
-                  }
+          {/* Полноэкранное мобильное меню */}
+          {open && (
+            <>
+              {/* Backdrop */}
+              <div
+                className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-md lg:hidden animate-in fade-in duration-200"
+                onClick={() => setOpen(false)}
+              />
 
-                  return (
-                    <Link key={item.name} href={item.href} onClick={() => setOpen(false)}>
-                      <Button
-                        variant={isActive ? "default" : "ghost"}
-                        className="w-full justify-start gap-2"
-                      >
-                        <Icon className="w-5 h-5" />
-                        <span>{item.name}</span>
-                      </Button>
-                    </Link>
-                  );
-                })}
-              </div>
-              <SheetFooter className="flex flex-col gap-2">
-                {isAuthenticated && user ? (
-                  <>
-                    <Link href={`/profile/${user.id}`} onClick={() => setOpen(false)} className="w-full">
-                      <Button variant="outline" className="w-full">
-                        <User className="mr-2 h-4 w-4" />
-                        Профиль
-                      </Button>
-                    </Link>
-                    <Button 
-                      variant="default" 
-                      className="w-full"
-                      onClick={() => {
-                        handleSignOut();
-                        setOpen(false);
-                      }}
+              {/* Menu Content */}
+              <div className="fixed inset-0 z-[10000] lg:hidden">
+                <div className="h-full flex flex-col p-6 bg-white dark:bg-gray-950 animate-in slide-in-from-bottom duration-300">
+                  {/* Header */}
+                  <div className="flex items-center justify-between mb-8">
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl shadow-lg">
+                        <svg width="22" height="22" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M9 10L16 24L23 10" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      </div>
+                      <span className="font-bold text-2xl tracking-tight text-foreground">vibeo.fun</span>
+                    </div>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => setOpen(false)}
+                      className="h-10 w-10 rounded-full hover:bg-muted"
                     >
-                      <LogOut className="mr-2 h-4 w-4" />
-                      Выйти
+                      <X className="size-5 text-foreground" />
                     </Button>
-                  </>
-                ) : (
-                  <Link href="/login" onClick={() => setOpen(false)} className="w-full">
-                    <Button variant="default" className="w-full">
-                      Войти
-                    </Button>
-                  </Link>
-                )}
-              </SheetFooter>
-            </SheetContent>
-          </Sheet>
+                  </div>
+
+                  {/* User Info */}
+                  {isAuthenticated && user && (
+                    <div className="mb-6 p-4 rounded-2xl bg-gradient-to-br from-primary/10 to-purple-500/5 border border-primary/30">
+                      <div className="flex items-center gap-3">
+                        <Avatar className="h-12 w-12 border-2 border-primary/30">
+                          <AvatarImage src={user.image || undefined} alt={user.name || "User"} />
+                          <AvatarFallback className="bg-primary/20 text-primary font-semibold">
+                            {getUserInitials(user.name)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-base truncate text-foreground">{user.name}</p>
+                          <p className="text-sm text-muted-foreground truncate">{user.email}</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Navigation */}
+                  <div className="flex-1 overflow-y-auto space-y-2">
+                    {currentNav.filter(item => !item.hidden).map((item) => {
+                      const Icon = item.icon;
+                      let isActive = false;
+                      
+                      if (showAdminNav) {
+                        const section = searchParams.get("section") || "vibes";
+                        isActive = item.href.includes(`section=${section}`);
+                      } else {
+                        isActive = pathname === item.href ||
+                          (item.href !== "/" && pathname.startsWith(item.href));
+                      }
+
+                      if (item.name === "Создать видео") {
+                        return (
+                          <button
+                            key={item.name}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              openUpload();
+                              setOpen(false);
+                            }}
+                            className={cn(
+                              "w-full flex items-center gap-4 px-4 py-3.5 rounded-xl transition-all duration-200",
+                              isActive
+                                ? "bg-gradient-to-r from-primary to-purple-600 text-white shadow-lg shadow-primary/25"
+                                : "bg-muted/50 hover:bg-muted border border-border"
+                            )}
+                          >
+                            <div className={cn(
+                              "w-10 h-10 rounded-lg flex items-center justify-center",
+                              isActive ? "bg-white/20" : "bg-primary/20"
+                            )}>
+                              <Icon className={cn("w-5 h-5", isActive ? "text-white" : "text-primary")} />
+                            </div>
+                            <span className={cn("font-medium text-base", isActive ? "text-white" : "text-foreground")}>{item.name}</span>
+                          </button>
+                        );
+                      }
+
+                      return (
+                        <Link key={item.name} href={item.href} onClick={() => setOpen(false)}>
+                          <button
+                            className={cn(
+                              "w-full flex items-center gap-4 px-4 py-3.5 rounded-xl transition-all duration-200",
+                              isActive
+                                ? "bg-gradient-to-r from-primary to-purple-600 text-white shadow-lg shadow-primary/25"
+                                : "bg-muted/50 hover:bg-muted border border-border"
+                            )}
+                          >
+                            <div className={cn(
+                              "w-10 h-10 rounded-lg flex items-center justify-center",
+                              isActive ? "bg-white/20" : "bg-primary/20"
+                            )}>
+                              <Icon className={cn("w-5 h-5", isActive ? "text-white" : "text-primary")} />
+                            </div>
+                            <span className={cn("font-medium text-base", isActive ? "text-white" : "text-foreground")}>{item.name}</span>
+                          </button>
+                        </Link>
+                      );
+                    })}
+
+                    {/* Admin Panel Link для обычных юзеров-админов */}
+                    {!showAdminNav && user?.role === "ADMIN" && (
+                      <Link href="/admin" onClick={() => setOpen(false)}>
+                        <button className="w-full flex items-center gap-4 px-4 py-3.5 rounded-xl transition-all duration-200 bg-purple-500/10 border border-purple-500/30 hover:bg-purple-500/20 hover:border-purple-500/50">
+                          <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-purple-500/20">
+                            <Shield className="w-5 h-5 text-purple-500" />
+                          </div>
+                          <span className="font-medium text-base text-foreground">Админ-панель</span>
+                        </button>
+                      </Link>
+                    )}
+                  </div>
+
+                  {/* Footer Actions */}
+                  <div className="mt-6 space-y-2 pt-4 border-t border-border">
+                    {isAuthenticated && user ? (
+                      <>
+                        <Link href={`/profile/${user.id}`} onClick={() => setOpen(false)} className="block">
+                          <Button variant="outline" className="w-full h-12 justify-start gap-3 bg-muted/50 border-border hover:bg-muted">
+                            <User className="w-5 h-5" />
+                            <span className="text-base">Профиль</span>
+                          </Button>
+                        </Link>
+                        <Button 
+                          variant="default" 
+                          className="w-full h-12 justify-start gap-3 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white"
+                          onClick={() => {
+                            handleSignOut();
+                            setOpen(false);
+                          }}
+                        >
+                          <LogOut className="w-5 h-5" />
+                          <span className="text-base">Выйти</span>
+                        </Button>
+                      </>
+                    ) : (
+                      <Link href="/login" onClick={() => setOpen(false)} className="block">
+                        <Button className="w-full h-12 text-base bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-600/90 text-white">
+                          Войти
+                        </Button>
+                      </Link>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </nav>
     </header>

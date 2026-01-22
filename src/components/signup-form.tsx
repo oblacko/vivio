@@ -7,8 +7,9 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { signupWithCredentials, signupWithGoogle } from "@/app/signup/actions"
 import { useState } from "react"
-import { useSearchParams } from "next/navigation"
+import { useSearchParams, useRouter } from "next/navigation"
 import Link from "next/link"
+import { CheckCircle2 } from "lucide-react"
 // import { PopularVideoShowcase } from "@/components/auth/PopularVideoShowcase"
 
 export function SignupForm({
@@ -17,7 +18,9 @@ export function SignupForm({
 }: React.ComponentProps<"div">) {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
   const searchParams = useSearchParams();
+  const router = useRouter();
   const callbackUrl = searchParams.get("callbackUrl") || undefined;
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -31,6 +34,13 @@ export function SignupForm({
     if (result?.error) {
       setError(result.error);
       setIsLoading(false);
+    } else if (result?.success) {
+      setIsSuccess(true);
+      setIsLoading(false);
+      // Редирект через 2 секунды после показа сообщения об успехе
+      setTimeout(() => {
+        router.push(result.callbackUrl || "/");
+      }, 2000);
     }
   };
 
@@ -39,6 +49,31 @@ export function SignupForm({
     setIsLoading(true);
     await signupWithGoogle(callbackUrl);
   };
+
+  // Показываем сообщение об успехе вместо формы
+  if (isSuccess) {
+    return (
+      <div className={cn("flex flex-col gap-6", className)} {...props}>
+        <Card className="overflow-hidden">
+          <CardContent className="p-6 md:p-8">
+            <div className="flex flex-col items-center text-center gap-4 py-8">
+              <div className="p-3 bg-green-500/10 rounded-full">
+                <CheckCircle2 className="w-12 h-12 text-green-600 dark:text-green-400" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-green-700 dark:text-green-400">
+                  Регистрация выполнена успешно!
+                </h1>
+                <p className="text-balance text-muted-foreground mt-2">
+                  Вы будете перенаправлены...
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>

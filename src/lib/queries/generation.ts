@@ -25,19 +25,41 @@ export function useGenerationStatus(jobId: string | null) {
       }
       const data = await response.json();
 
+      // Нормализуем статус к нижнему регистру
+      const normalizedStatus = (data.status || "").toString().toLowerCase().trim() as GenerationStatus["status"];
+      
+      console.log("📊 Generation Status Update:", {
+        originalStatus: data.status,
+        normalizedStatus,
+        progress: data.progress,
+        hasVideoUrl: !!data.videoUrl,
+        hasVideoId: !!data.videoId,
+      });
+
       // Обновление store
       setProgress(data.progress || 0);
-      setStatus(data.status.toLowerCase() as GenerationStatus["status"]);
+      setStatus(normalizedStatus);
       if (data.videoUrl) setVideoUrl(data.videoUrl);
       if (data.videoId) setVideoId(data.videoId);
       if (data.errorMessage) setErrorMessage(data.errorMessage);
 
-      return data;
+      // Возвращаем данные с нормализованным статусом
+      return {
+        ...data,
+        status: normalizedStatus,
+      };
     },
     enabled: !!jobId && jobId !== null,
     refetchInterval: (query) => {
       const data = query.state.data as GenerationStatus | undefined;
-      if (data?.status === "completed" || data?.status === "failed") {
+      const status = data?.status?.toString().toLowerCase().trim();
+      
+      console.log("🔄 Polling check:", {
+        status,
+        shouldStop: status === "completed" || status === "failed",
+      });
+      
+      if (status === "completed" || status === "failed") {
         return false; // Остановить polling
       }
       return 2000; // Polling каждые 2 секунды

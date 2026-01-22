@@ -66,7 +66,6 @@ function AnimatedVideo({ video, onToggleFavorite }: AnimatedVideoProps) {
   
   const [isHovered, setIsHovered] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
   const [thumbnailError, setThumbnailError] = useState(false);
 
   // Функция для получения CSS класса aspect ratio на основе данных
@@ -99,67 +98,55 @@ function AnimatedVideo({ video, onToggleFavorite }: AnimatedVideoProps) {
 
   const aspectRatioClass = getAspectRatioClass(video.aspectRatio);
 
-  // Определяем мобильное устройство
+  // Автоматический запуск видео когда isPlaying становится true
   useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.matchMedia("(max-width: 768px)").matches);
-    };
-    
-    checkMobile();
-    window.addEventListener("resize", checkMobile);
-    
-    return () => window.removeEventListener("resize", checkMobile);
-  }, []);
+    if (isPlaying && videoRef.current) {
+      videoRef.current.play().catch(console.error);
+    } else if (!isPlaying && videoRef.current) {
+      videoRef.current.pause();
+      videoRef.current.currentTime = 0;
+    }
+  }, [isPlaying]);
 
-  // Intersection Observer для автоплея на мобильных
+  // Intersection Observer для автоплея при видимости (работает на всех устройствах)
   useEffect(() => {
-    if (!isMobile || !videoRef.current) return;
+    const currentContainer = containerRef.current;
+    if (!currentContainer) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
-          if (entry.isIntersecting && entry.intersectionRatio >= 0.5) {
-            videoRef.current?.play().catch(console.error);
+          if (entry.isIntersecting && entry.intersectionRatio >= 0.3) {
+            // Автозапуск при видимости
             setIsPlaying(true);
           } else {
-            videoRef.current?.pause();
+            // Остановка и сброс при выходе из viewport
             setIsPlaying(false);
           }
         });
       },
-      { threshold: 0.5 }
+      { 
+        threshold: [0, 0.3, 0.5, 1],
+        rootMargin: '100px' // Предзагрузка за 100px до появления
+      }
     );
 
-    const currentContainer = containerRef.current;
-    if (currentContainer) {
-      observer.observe(currentContainer);
-    }
+    observer.observe(currentContainer);
 
     return () => {
-      if (currentContainer) {
-        observer.unobserve(currentContainer);
-      }
+      observer.unobserve(currentContainer);
     };
-  }, [isMobile]);
+  }, []);
 
-  // Hover эффект для десктопа
+  // Hover эффект (дополнительно к автоплею при видимости)
   const handleMouseEnter = () => {
-    if (!isMobile) {
-      setIsHovered(true);
-      videoRef.current?.play().catch(console.error);
-      setIsPlaying(true);
-    }
+    setIsHovered(true);
+    // Видео уже играет через Intersection Observer, hover просто отмечает состояние
   };
 
   const handleMouseLeave = () => {
-    if (!isMobile) {
-      setIsHovered(false);
-      videoRef.current?.pause();
-      if (videoRef.current) {
-        videoRef.current.currentTime = 0;
-      }
-      setIsPlaying(false);
-    }
+    setIsHovered(false);
+    // Видео управляется через Intersection Observer
   };
 
   const shouldShowVideo = isPlaying || isHovered;
@@ -221,6 +208,7 @@ function AnimatedVideo({ video, onToggleFavorite }: AnimatedVideoProps) {
                 loop
                 muted
                 playsInline
+                preload="metadata"
               />
             </motion.div>
           )}

@@ -18,14 +18,18 @@ export async function loginWithCredentials(formData: FormData, callbackUrl?: str
     // Валидация
     const validated = loginSchema.parse({ email, password });
 
-    await signIn("credentials", {
+    const result = await signIn("credentials", {
       email: validated.email,
       password: validated.password,
       redirect: false,
     });
 
-    // При успехе редиректим на callbackUrl или главную
-    redirect(callbackUrl || "/");
+    if (result?.error) {
+      return { error: "Неверный email или пароль" };
+    }
+
+    // При успехе возвращаем success, редирект будет на клиенте
+    return { success: true, callbackUrl: callbackUrl || "/" };
   } catch (error) {
     if (error instanceof AuthError) {
       switch (error.type) {
@@ -40,8 +44,7 @@ export async function loginWithCredentials(formData: FormData, callbackUrl?: str
       return { error: error.issues[0].message };
     }
 
-    // Если это редирект (успешный вход), пробрасываем его
-    throw error;
+    return { error: "Произошла ошибка при входе" };
   }
 }
 

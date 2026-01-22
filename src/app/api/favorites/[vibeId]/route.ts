@@ -1,17 +1,19 @@
 export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
 import { auth } from "@/lib/auth";
 
 interface RouteParams {
-  params: {
+  params: Promise<{
     vibeId: string;
-  };
+  }>;
 }
 
 export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
+    const resolvedParams = await params;
     const session = await auth();
 
     if (!session?.user?.id) {
@@ -21,7 +23,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    const { vibeId } = params;
+    const { vibeId } = resolvedParams;
 
     // Проверяем существование вайба
     const vibe = await prisma.vibe.findUnique({
@@ -78,6 +80,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
+    const resolvedParams = await params;
     const session = await auth();
 
     if (!session?.user?.id) {
@@ -87,7 +90,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    const { vibeId } = params;
+    const { vibeId } = resolvedParams;
 
     // Удаляем из избранного
     const deleted = await prisma.favoriteVibe.deleteMany({

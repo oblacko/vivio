@@ -1,4 +1,5 @@
 export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
@@ -6,9 +7,9 @@ import { grokClient } from "@/lib/grok/client";
 import { uploadVideoFromUrl, optimizeAndUploadThumbnail } from "@/lib/storage/vercel-blob";
 
 interface RouteParams {
-  params: {
+  params: Promise<{
     jobId: string;
-  };
+  }>;
 }
 
 /**
@@ -20,7 +21,8 @@ export async function POST(
   { params }: RouteParams
 ) {
   try {
-    const { jobId } = params;
+    const resolvedParams = await params;
+    const { jobId } = resolvedParams;
     const body = await request.json();
     const { vibeId, resultJson } = body;
 

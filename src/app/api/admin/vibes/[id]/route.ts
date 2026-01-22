@@ -1,3 +1,6 @@
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db/client";
@@ -14,9 +17,9 @@ const updateVibeSchema = z.object({
 });
 
 interface RouteParams {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 export async function PATCH(
@@ -24,6 +27,8 @@ export async function PATCH(
   { params }: RouteParams
 ) {
   try {
+    const resolvedParams = await params;
+    
     // Проверка авторизации и роли
     const session = await auth();
     
@@ -41,7 +46,7 @@ export async function PATCH(
       );
     }
 
-    const { id } = params;
+    const { id } = resolvedParams;
 
     // Проверка существования вайба
     const existingVibe = await prisma.vibe.findUnique({
@@ -99,6 +104,8 @@ export async function DELETE(
   { params }: RouteParams
 ) {
   try {
+    const resolvedParams = await params;
+    
     // Проверка авторизации и роли
     const session = await auth();
     
@@ -116,7 +123,7 @@ export async function DELETE(
       );
     }
 
-    const { id } = params;
+    const { id } = resolvedParams;
 
     // Проверка существования вайба
     const existingVibe = await prisma.vibe.findUnique({

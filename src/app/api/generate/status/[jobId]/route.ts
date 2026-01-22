@@ -1,4 +1,5 @@
 export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
@@ -6,9 +7,9 @@ import { grokClient } from "@/lib/grok/client";
 import { uploadVideoFromUrl, optimizeAndUploadThumbnail } from "@/lib/storage/vercel-blob";
 
 interface RouteParams {
-  params: {
+  params: Promise<{
     jobId: string;
-  };
+  }>;
 }
 
 export async function GET(
@@ -16,7 +17,8 @@ export async function GET(
   { params }: RouteParams
 ) {
   try {
-    const { jobId } = params;
+    const resolvedParams = await params;
+    const { jobId } = resolvedParams;
 
     // Поиск job в БД
     const job = await prisma.generationJob.findUnique({

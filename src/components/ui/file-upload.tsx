@@ -86,12 +86,12 @@ export const FileUpload = ({
         whileHover={!disabled ? { scale: 1.01 } : {}}
         transition={{ duration: 0.2 }}
         className={cn(
-          "p-10 group/file block rounded-xl w-full h-full relative overflow-hidden transition-all duration-300",
+          "p-10 group/file block rounded-xl w-full h-full relative overflow-hidden transition-all duration-500",
           disabled 
             ? "bg-muted/30 cursor-not-allowed opacity-50 border-2 border-dashed border-muted"
             : currentIsDragging
-            ? "border-2 border-dashed border-primary bg-gradient-to-br from-primary/10 via-primary/5 to-primary/10 cursor-pointer shadow-lg animate-pulse"
-            : "cursor-pointer bg-gradient-to-br from-primary/5 via-background to-primary/5 border-2 border-dashed border-muted-foreground/25 hover:border-primary/50 hover:shadow-md"
+            ? "border-2 border-dashed border-primary bg-gradient-to-br from-primary/20 via-primary/10 to-primary/5 cursor-pointer shadow-lg animate-pulse"
+            : "cursor-pointer bg-gradient-to-br from-primary/10 via-background to-primary/5 border-2 border-dashed border-muted-foreground/25 hover:border-primary/50 hover:shadow-md hover:from-primary/15 hover:to-primary/8"
         )}
       >
         <input
@@ -244,26 +244,3 @@ export const FileUpload = ({
   );
 };
 
-export function GridPattern() {
-  const columns = 41;
-  const rows = 25;
-  return (
-    <div className="flex bg-gray-100 dark:bg-neutral-900 flex-shrink-0 flex-wrap justify-center items-center gap-x-px gap-y-px scale-105">
-      {Array.from({ length: rows }).map((_, row) =>
-        Array.from({ length: columns }).map((_, col) => {
-          const isEven = (row + col) % 2 === 0;
-          return (
-            <div
-              key={`${col}-${row}`}
-              className={`w-10 h-10 flex flex-shrink-0 rounded-[2px] ${
-                isEven
-                  ? "bg-gray-50 dark:bg-neutral-950"
-                  : "bg-gray-50 dark:bg-neutral-950 shadow-[0px_0px_1px_3px_rgba(255,255,255,1)_inset] dark:shadow-[0px_0px_1px_3px_rgba(0,0,0,1)_inset]"
-              }`}
-            />
-          );
-        })
-      )}
-    </div>
-  );
-}

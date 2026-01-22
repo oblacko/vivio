@@ -1,4 +1,5 @@
 export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
@@ -6,9 +7,9 @@ import { auth } from "@/lib/auth";
 import { z } from "zod";
 
 interface RouteParams {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 const updateProfileSchema = z.object({
@@ -25,7 +26,8 @@ const updateProfileSchema = z.object({
 
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
-    const { id } = params;
+    const resolvedParams = await params;
+    const { id } = resolvedParams;
     const session = await auth();
 
     // Получаем профиль пользователя
@@ -118,6 +120,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
   try {
+    const resolvedParams = await params;
     const session = await auth();
     
     if (!session?.user) {
@@ -127,7 +130,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    const { id } = params;
+    const { id } = resolvedParams;
 
     // Проверка прав доступа - можно редактировать только свой профиль
     if (session.user.id !== id) {
