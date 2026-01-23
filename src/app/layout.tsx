@@ -13,7 +13,7 @@ import { Suspense } from "react";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "vibeo.fun - Video Challenge App",
+  title: "vybeo.fun - Video Challenge App",
   description: "Create amazing 6-second videos with AI",
   icons: {
     icon: "/favicon.svg",

@@ -15,11 +15,12 @@ export function WavyBackgroundWrapper() {
     <div className="fixed inset-0 -z-10">
       <WavyBackground 
         containerClassName="w-full h-full"
-        backgroundFill="hsl(var(--background))"
-        colors={["#8b5cf6", "#6366f1", "#3b82f6", "#06b6d4", "#14b8a6"]}
-        waveOpacity={0.3}
+        backgroundFill="#1c1831"
+        colors={["#8b5cf6", "#6366f126", "#3b82f626", "#06b6d426", "#14b8a626"]}
+        waveOpacity={0.5}
         speed="fast"
-        blur={8}
+        blur={0}
+        waveWidth={1}
       />
     </div>
   );

@@ -38,11 +38,13 @@ const navigation: NavigationItem[] = [
     name: "Вайбы",
     href: "/vibes",
     icon: Sparkles,
+    hidden: true,
   },
   {
     name: "Избранное",
     href: "/favorites",
     icon: Heart,
+    hidden: true,
   },
   {
     name: "Видео",
@@ -54,6 +56,7 @@ const navigation: NavigationItem[] = [
     name: "Создать видео",
     href: "/create",
     icon: Plus,
+    hidden: true
   },
 ];
 
@@ -131,19 +134,18 @@ export function Navigation() {
     <header
       className={cn(
         "sticky top-6 z-[100]",
-        "mx-auto w-full max-w-6xl rounded-2xl border border-border/40 shadow-sm",
-        "bg-background/80 supports-[backdrop-filter]:bg-background/60 backdrop-blur-xl",
+        "mx-auto w-full max-w-6xl"        
       )}
     >
       <nav className="mx-auto flex items-center justify-between px-6 py-3">
         {/* Логотип */}
-        <Link href="/" className="hover:bg-accent flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 duration-200">
+        <Link href="/" className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 duration-200">
           <div className="flex items-center justify-center w-9 h-9 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl">
             <svg width="20" height="20" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M9 10L16 24L23 10" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </div>
-          <span className="font-bold text-xl tracking-tight">vibeo.fun</span>
+          <span className="font-bold text-white text-xl tracking-tight">vybeo.fun</span>
         </Link>
 
         {/* Desktop навигация */}
