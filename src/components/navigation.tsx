@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import ReactDOM from "react-dom";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -94,6 +95,7 @@ export function Navigation() {
   const isAdminPage = pathname === "/admin";
   const showAdminNav = isAdminPage && user?.role === "ADMIN";
   const currentNav = showAdminNav ? adminNavigation : navigation;
+  const isAdmin = user?.role === "ADMIN";
 
   // Закрываем upload sheet когда открывается мобильное меню
   React.useEffect(() => {
@@ -101,6 +103,15 @@ export function Navigation() {
       closeUpload();
     }
   }, [open, closeUpload]);
+
+  // Функция для проверки активности пункта меню
+  const isMenuItemActive = (item: NavigationItem, isAdminItem: boolean = false) => {
+    if (isAdminItem) {
+      const section = searchParams.get("section") || "vibes";
+      return item.href.includes(`section=${section}`);
+    }
+    return pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href));
+  };
 
   const handleSignOut = async () => {
     await signOut({ callbackUrl: "/" });
@@ -124,7 +135,7 @@ export function Navigation() {
         "bg-background/80 supports-[backdrop-filter]:bg-background/60 backdrop-blur-xl",
       )}
     >
-      <nav className="mx-auto flex items-center justify-between px-4 py-2">
+      <nav className="mx-auto flex items-center justify-between px-6 py-3">
         {/* Логотип */}
         <Link href="/" className="hover:bg-accent flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 duration-200">
           <div className="flex items-center justify-center w-9 h-9 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl">
@@ -136,56 +147,52 @@ export function Navigation() {
         </Link>
 
         {/* Desktop навигация */}
-        <div className="hidden items-center gap-1 lg:flex">
+        <div className="hidden items-center gap-8 lg:flex">
+          {/* Индикатор админ-режима */}
+          {showAdminNav && (
+            <div className="flex items-center gap-2 mr-2 px-3 py-1.5 rounded-lg bg-purple-500/10 border border-purple-500/30">
+              <Shield className="w-4 h-4 text-purple-500" />
+              <span className="text-sm font-medium text-purple-700 dark:text-purple-400">Админ</span>
+            </div>
+          )}
+          
           {currentNav.filter(item => !item.hidden).map((item) => {
             const Icon = item.icon;
-            let isActive = false;
-            
-            if (showAdminNav) {
-              // Для админских ссылок проверяем searchParams
-              const section = searchParams.get("section") || "vibes";
-              isActive = item.href.includes(`section=${section}`);
-            } else {
-              // Для обычных ссылок проверяем pathname
-              isActive = pathname === item.href ||
-                (item.href !== "/" && pathname.startsWith(item.href));
-            }
+            const isActive = isMenuItemActive(item, showAdminNav);
             
             // Для кнопки "Создать видео" используем onClick вместо Link
             if (item.name === "Создать видео") {
               return (
-                <Button
+                <button
                   key={item.name}
-                  variant={isActive ? "default" : "ghost"}
-                  size="sm"
                   onClick={(e) => {
                     e.preventDefault();
                     openUpload();
                   }}
-                  className={cn(
-                    "flex items-center gap-2",
-                    isActive && "bg-primary text-primary-foreground"
-                  )}
+                  className="group relative flex items-center gap-2 py-2 text-sm font-medium text-foreground/80 hover:text-foreground transition-colors duration-200"
                 >
                   <Icon className="w-4 h-4" />
                   <span>{item.name}</span>
-                </Button>
+                  <span className={cn(
+                    "absolute -bottom-0.5 left-0 h-0.5 bg-primary transition-all duration-300 ease-out",
+                    isActive ? "w-full" : "w-0 group-hover:w-full"
+                  )} />
+                </button>
               );
             }
 
             return (
-              <Link key={item.name} href={item.href}>
-                <Button
-                  variant={isActive ? "default" : "ghost"}
-                  size="sm"
-                  className={cn(
-                    "flex items-center gap-2",
-                    isActive && "bg-primary text-primary-foreground"
-                  )}
-                >
-                  <Icon className="w-4 h-4" />
-                  <span>{item.name}</span>
-                </Button>
+              <Link 
+                key={item.name} 
+                href={item.href}
+                className="group relative flex items-center gap-2 py-2 text-sm font-medium text-foreground/80 hover:text-foreground transition-colors duration-200"
+              >
+                <Icon className="w-4 h-4" />
+                <span>{item.name}</span>
+                <span className={cn(
+                  "absolute -bottom-0.5 left-0 h-0.5 bg-primary transition-all duration-300 ease-out",
+                  isActive ? "w-full" : "w-0 group-hover:w-full"
+                )} />
               </Link>
             );
           })}
@@ -258,19 +265,27 @@ export function Navigation() {
           </Button>
 
           {/* Полноэкранное мобильное меню */}
-          {open && (
+          {open && typeof window !== 'undefined' && ReactDOM.createPortal(
             <>
               {/* Backdrop */}
               <div
                 className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-md lg:hidden animate-in fade-in duration-200"
-                onClick={() => setOpen(false)}
+                onClick={(e) => {
+                  // Проверяем что клик именно на backdrop, а не на меню
+                  if (e.target === e.currentTarget) {
+                    setOpen(false);
+                  }
+                }}
               />
 
               {/* Menu Content */}
-              <div className="fixed inset-0 z-[10000] lg:hidden">
-                <div className="h-full flex flex-col p-6 bg-white dark:bg-gray-950 animate-in slide-in-from-bottom duration-300">
+              <div className="fixed inset-0 z-[10000] lg:hidden pointer-events-none">
+                <div 
+                  className="relative h-full flex flex-col p-6 pointer-events-auto animate-in slide-in-from-bottom duration-300"
+                  style={{ backgroundColor: 'rgb(255, 255, 255)', colorScheme: 'light' }}
+                >
                   {/* Header */}
-                  <div className="flex items-center justify-between mb-8">
+                  <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center gap-3">
                       <div className="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl shadow-lg">
                         <svg width="22" height="22" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -283,7 +298,7 @@ export function Navigation() {
                       size="icon"
                       variant="ghost"
                       onClick={() => setOpen(false)}
-                      className="h-10 w-10 rounded-full hover:bg-muted"
+                      className="h-10 w-10 rounded-full hover:bg-muted transition-colors"
                     >
                       <X className="size-5 text-foreground" />
                     </Button>
@@ -291,7 +306,7 @@ export function Navigation() {
 
                   {/* User Info */}
                   {isAuthenticated && user && (
-                    <div className="mb-6 p-4 rounded-2xl bg-gradient-to-br from-primary/10 to-purple-500/5 border border-primary/30">
+                    <div className="mb-6 p-4 rounded-2xl bg-gradient-to-br from-primary/10 to-purple-500/5 border border-primary/30 animate-in slide-in-from-top duration-300">
                       <div className="flex items-center gap-3">
                         <Avatar className="h-12 w-12 border-2 border-primary/30">
                           <AvatarImage src={user.image || undefined} alt={user.name || "User"} />
@@ -307,79 +322,90 @@ export function Navigation() {
                     </div>
                   )}
 
-                  {/* Navigation */}
-                  <div className="flex-1 overflow-y-auto space-y-2">
-                    {currentNav.filter(item => !item.hidden).map((item) => {
-                      const Icon = item.icon;
-                      let isActive = false;
-                      
-                      if (showAdminNav) {
-                        const section = searchParams.get("section") || "vibes";
-                        isActive = item.href.includes(`section=${section}`);
-                      } else {
-                        isActive = pathname === item.href ||
-                          (item.href !== "/" && pathname.startsWith(item.href));
-                      }
+                  {/* Scrollable Navigation Content */}
+                  <div className="flex-1 overflow-y-auto space-y-8 py-4">
+                    {/* Main Navigation Section */}
+                    <div className="space-y-1">
+                      <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-2 mb-4">
+                        Навигация
+                      </h3>
+                      {navigation.filter(item => !item.hidden).map((item) => {
+                        const Icon = item.icon;
+                        const isActive = isMenuItemActive(item, false);
 
-                      if (item.name === "Создать видео") {
+                        if (item.name === "Создать видео") {
+                          return (
+                            <button
+                              key={item.name}
+                              onClick={(e) => {
+                                e.preventDefault();
+                                openUpload();
+                                setOpen(false);
+                              }}
+                              className="group relative w-full flex items-center gap-3 px-2 py-3 text-foreground/80 hover:text-foreground transition-colors duration-200"
+                            >
+                              <Icon className="w-5 h-5" />
+                              <span className="font-medium text-base">{item.name}</span>
+                              <span className={cn(
+                                "absolute bottom-0 left-2 right-2 h-0.5 bg-primary transition-all duration-300 ease-out",
+                                isActive ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+                              )} />
+                            </button>
+                          );
+                        }
+
                         return (
                           <button
                             key={item.name}
-                            onClick={(e) => {
-                              e.preventDefault();
-                              openUpload();
+                            onClick={() => {
                               setOpen(false);
+                              // Используем программную навигацию для надежности
+                              window.location.href = item.href;
                             }}
-                            className={cn(
-                              "w-full flex items-center gap-4 px-4 py-3.5 rounded-xl transition-all duration-200",
-                              isActive
-                                ? "bg-gradient-to-r from-primary to-purple-600 text-white shadow-lg shadow-primary/25"
-                                : "bg-muted/50 hover:bg-muted border border-border"
-                            )}
+                            className="group relative w-full flex items-center gap-3 px-2 py-3 text-foreground/80 hover:text-foreground transition-colors duration-200 text-left focus:outline-none focus:bg-muted/50"
                           >
-                            <div className={cn(
-                              "w-10 h-10 rounded-lg flex items-center justify-center",
-                              isActive ? "bg-white/20" : "bg-primary/20"
-                            )}>
-                              <Icon className={cn("w-5 h-5", isActive ? "text-white" : "text-primary")} />
-                            </div>
-                            <span className={cn("font-medium text-base", isActive ? "text-white" : "text-foreground")}>{item.name}</span>
+                            <Icon className="w-5 h-5" />
+                            <span className="font-medium text-base">{item.name}</span>
+                            <span className={cn(
+                              "absolute bottom-0 left-2 right-2 h-0.5 bg-primary transition-all duration-300 ease-out",
+                              isActive ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+                            )} />
                           </button>
                         );
-                      }
+                      })}
+                    </div>
 
-                      return (
-                        <Link key={item.name} href={item.href} onClick={() => setOpen(false)}>
-                          <button
-                            className={cn(
-                              "w-full flex items-center gap-4 px-4 py-3.5 rounded-xl transition-all duration-200",
-                              isActive
-                                ? "bg-gradient-to-r from-primary to-purple-600 text-white shadow-lg shadow-primary/25"
-                                : "bg-muted/50 hover:bg-muted border border-border"
-                            )}
-                          >
-                            <div className={cn(
-                              "w-10 h-10 rounded-lg flex items-center justify-center",
-                              isActive ? "bg-white/20" : "bg-primary/20"
-                            )}>
-                              <Icon className={cn("w-5 h-5", isActive ? "text-white" : "text-primary")} />
-                            </div>
-                            <span className={cn("font-medium text-base", isActive ? "text-white" : "text-foreground")}>{item.name}</span>
-                          </button>
-                        </Link>
-                      );
-                    })}
+                    {/* Admin Panel Section */}
+                    {isAdmin && (
+                      <div className="space-y-1 pt-4 border-t border-border/50">
+                        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-2 mb-4 flex items-center gap-2">
+                          <Shield className="w-3.5 h-3.5 text-purple-500" />
+                          <span>Админ-панель</span>
+                        </h3>
+                        {adminNavigation.map((item) => {
+                          const Icon = item.icon;
+                          const isActive = isMenuItemActive(item, true);
 
-                    {/* Admin Panel Link для обычных юзеров-админов */}
-                    {!showAdminNav && user?.role === "ADMIN" && (
-                      <Link href="/admin" onClick={() => setOpen(false)}>
-                        <button className="w-full flex items-center gap-4 px-4 py-3.5 rounded-xl transition-all duration-200 bg-purple-500/10 border border-purple-500/30 hover:bg-purple-500/20 hover:border-purple-500/50">
-                          <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-purple-500/20">
-                            <Shield className="w-5 h-5 text-purple-500" />
-                          </div>
-                          <span className="font-medium text-base text-foreground">Админ-панель</span>
-                        </button>
-                      </Link>
+                          return (
+                            <button
+                              key={item.name}
+                              onClick={() => {
+                                setOpen(false);
+                                // Используем программную навигацию для надежности
+                                window.location.href = item.href;
+                              }}
+                              className="group relative w-full flex items-center gap-3 px-2 py-3 text-foreground/80 hover:text-foreground transition-colors duration-200 text-left focus:outline-none focus:bg-muted/50"
+                            >
+                              <Icon className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                              <span className="font-medium text-base">{item.name}</span>
+                              <span className={cn(
+                                "absolute bottom-0 left-2 right-2 h-0.5 bg-purple-600 transition-all duration-300 ease-out",
+                                isActive ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+                              )} />
+                            </button>
+                          );
+                        })}
+                      </div>
                     )}
                   </div>
 
@@ -388,14 +414,14 @@ export function Navigation() {
                     {isAuthenticated && user ? (
                       <>
                         <Link href={`/profile/${user.id}`} onClick={() => setOpen(false)} className="block">
-                          <Button variant="outline" className="w-full h-12 justify-start gap-3 bg-muted/50 border-border hover:bg-muted">
+                          <Button variant="outline" className="w-full h-12 justify-start gap-3 bg-muted/50 border-border hover:bg-muted transition-all hover:scale-[1.01]">
                             <User className="w-5 h-5" />
                             <span className="text-base">Профиль</span>
                           </Button>
                         </Link>
                         <Button 
                           variant="default" 
-                          className="w-full h-12 justify-start gap-3 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white"
+                          className="w-full h-12 justify-start gap-3 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white transition-all hover:scale-[1.01]"
                           onClick={() => {
                             handleSignOut();
                             setOpen(false);
@@ -407,7 +433,7 @@ export function Navigation() {
                       </>
                     ) : (
                       <Link href="/login" onClick={() => setOpen(false)} className="block">
-                        <Button className="w-full h-12 text-base bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-600/90 text-white">
+                        <Button className="w-full h-12 text-base bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-600/90 text-white transition-all hover:scale-[1.01]">
                           Войти
                         </Button>
                       </Link>
@@ -415,7 +441,8 @@ export function Navigation() {
                   </div>
                 </div>
               </div>
-            </>
+            </>,
+            document.body
           )}
         </div>
       </nav>
