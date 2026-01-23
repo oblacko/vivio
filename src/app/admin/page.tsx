@@ -13,19 +13,20 @@ import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 import { UsersTable } from "@/components/admin/UsersTable";
 import { VibesTable } from "@/components/admin/VibesTable";
 import { SettingsForm } from "@/components/admin/SettingsForm";
 import { TagsManager } from "@/components/admin/TagsManager";
 import { VibeGenerator } from "@/components/admin/VibeGenerator";
 import { toast } from "sonner";
-import { Plus, Edit, Trash2, AlertCircle, Loader2, Search, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, Edit, Trash2, AlertCircle, Loader2, Search, ChevronLeft, ChevronRight, X } from "lucide-react";
 import type { Vibe } from "@/lib/queries/vibes";
 
 interface VibeFormData {
   title: string;
   description: string;
-  category: "MONUMENTS" | "PETS" | "FACES" | "SEASONAL";
+  tagIds: string[];
   thumbnailUrl: string;
   promptTemplate: string;
   isActive: boolean;
@@ -47,7 +48,7 @@ interface User {
 const initialFormData: VibeFormData = {
   title: "",
   description: "",
-  category: "MONUMENTS",
+  tagIds: [],
   thumbnailUrl: "",
   promptTemplate: "",
   isActive: true,
@@ -73,10 +74,38 @@ function AdminPageContent() {
     filters: vibeFilters
   });
 
+  const [allTags, setAllTags] = useState<any[]>([]);
+  const [isLoadingTags, setIsLoadingTags] = useState(true);
   const [tags, setTags] = useState<any[]>([]);
   
   useEffect(() => {
-    fetch("/api/admin/tags").then(res => res.json()).then(setTags);
+    // Загружаем теги для фильтрации
+    fetch("/api/admin/tags")
+      .then(res => res.json())
+      .then(data => {
+        setTags(data);
+      })
+      .catch(err => {
+        console.error("Error loading tags for filter:", err);
+        setTags([]);
+      });
+    
+    // Загружаем теги для формы
+    setIsLoadingTags(true);
+    fetch("/api/tags")
+      .then(res => {
+        if (!res.ok) throw new Error("Failed to fetch tags");
+        return res.json();
+      })
+      .then(data => {
+        setAllTags(data || []);
+        setIsLoadingTags(false);
+      })
+      .catch(err => {
+        console.error("Error loading tags:", err);
+        setAllTags([]);
+        setIsLoadingTags(false);
+      });
   }, []);
 
   const vibes = vibesData?.vibes || [];
@@ -128,15 +157,49 @@ function AdminPageContent() {
       
       const method = editingId ? "PATCH" : "POST";
 
+      // Создаем/обновляем вайб без тегов
+      const { tagIds = [], ...vibeData } = formData;
       const response = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(vibeData),
       });
 
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.error || "Ошибка при сохранении вайба");
+      }
+
+      const savedVibe = await response.json();
+      const vibeId = savedVibe.id || editingId;
+
+      // Обновляем теги вайба
+      if (vibeId && Array.isArray(tagIds)) {
+        // Получаем текущие теги вайба
+        const currentVibe = vibes.find((v: any) => v.id === vibeId);
+        const currentTagIds = currentVibe?.tags?.map((t: any) => t.id) || [];
+
+        // Удаляем теги, которых нет в новом списке
+        for (const tagId of currentTagIds) {
+          if (!tagIds.includes(tagId)) {
+            await fetch(`/api/admin/vibes/${vibeId}/tags`, {
+              method: "DELETE",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ tagId }),
+            });
+          }
+        }
+
+        // Добавляем новые теги
+        for (const tagId of tagIds) {
+          if (!currentTagIds.includes(tagId)) {
+            await fetch(`/api/admin/vibes/${vibeId}/tags`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ tagId }),
+            });
+          }
+        }
       }
 
       toast.success(editingId ? "Вайб обновлен" : "Вайб создан");
@@ -153,12 +216,12 @@ function AdminPageContent() {
 
   const handleEdit = (vibe: any) => {
     setFormData({
-      title: vibe.title,
+      title: vibe.title || "",
       description: vibe.description || "",
-      category: vibe.category,
+      tagIds: Array.isArray(vibe.tags) ? vibe.tags.map((t: any) => t.id) : [],
       thumbnailUrl: vibe.thumbnailUrl || "",
-      promptTemplate: vibe.promptTemplate,
-      isActive: vibe.isActive,
+      promptTemplate: vibe.promptTemplate || "",
+      isActive: vibe.isActive ?? true,
     });
     setEditingId(vibe.id);
     setIsDialogOpen(true);
@@ -267,21 +330,71 @@ function AdminPageContent() {
                       </div>
 
                       <div>
-                        <Label htmlFor="category">Категория</Label>
-                        <Select
-                          value={formData.category}
-                          onValueChange={(value: any) => setFormData({ ...formData, category: value })}
-                        >
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="MONUMENTS">Монументы</SelectItem>
-                            <SelectItem value="PETS">Питомцы</SelectItem>
-                            <SelectItem value="FACES">Лица</SelectItem>
-                            <SelectItem value="SEASONAL">Сезонные</SelectItem>
-                          </SelectContent>
-                        </Select>
+                        <Label>Теги</Label>
+                        <div className="border rounded-md p-3 min-h-[100px] max-h-[200px] overflow-y-auto">
+                          {isLoadingTags ? (
+                            <div className="text-sm text-muted-foreground">Загрузка тегов...</div>
+                          ) : allTags.length === 0 ? (
+                            <div className="text-sm text-muted-foreground">Нет доступных тегов</div>
+                          ) : (
+                            <div className="space-y-2">
+                              {allTags.map((tag) => (
+                                <div key={tag.id} className="flex items-center space-x-2">
+                                  <Checkbox
+                                    id={`tag-${tag.id}`}
+                                    checked={formData.tagIds?.includes(tag.id) || false}
+                                    onCheckedChange={(checked) => {
+                                      const currentTagIds = formData.tagIds || [];
+                                      if (checked) {
+                                        setFormData({
+                                          ...formData,
+                                          tagIds: [...currentTagIds, tag.id],
+                                        });
+                                      } else {
+                                        setFormData({
+                                          ...formData,
+                                          tagIds: currentTagIds.filter((id) => id !== tag.id),
+                                        });
+                                      }
+                                    }}
+                                  />
+                                  <Label
+                                    htmlFor={`tag-${tag.id}`}
+                                    className="text-sm font-normal cursor-pointer flex-1"
+                                  >
+                                    {tag.name}
+                                  </Label>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                        {formData.tagIds && formData.tagIds.length > 0 && (
+                          <div className="flex flex-wrap gap-2 mt-2">
+                            {formData.tagIds.map((tagId) => {
+                              const tag = allTags.find((t) => t.id === tagId);
+                              if (!tag) return null;
+                              return (
+                                <Badge
+                                  key={tagId}
+                                  variant="secondary"
+                                  className="flex items-center gap-1"
+                                >
+                                  {tag.name}
+                                  <X
+                                    className="h-3 w-3 cursor-pointer"
+                                    onClick={() => {
+                                      setFormData({
+                                        ...formData,
+                                        tagIds: formData.tagIds.filter((id) => id !== tagId),
+                                      });
+                                    }}
+                                  />
+                                </Badge>
+                              );
+                            })}
+                          </div>
+                        )}
                       </div>
 
                       <div>

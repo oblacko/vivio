@@ -73,7 +73,7 @@ export function FileUpload({ onClose, defaultChallengeId }: FileUploadProps) {
   const uploadMutation = useUploadImage();
   const initiateMutation = useInitiateGeneration();
   const { data: generationStatus } = useGenerationStatus(jobId);
-  const { data: vibesData } = useVibes();
+  const { data: vibesData, isLoading: vibesLoading, error: vibesError } = useVibes();
   const vibes = useMemo(() => vibesData?.vibes || [], [vibesData?.vibes]);
 
   const isGenerating = jobId && generationStatus?.status !== "completed" && generationStatus?.status !== "failed";
@@ -291,13 +291,31 @@ export function FileUpload({ onClose, defaultChallengeId }: FileUploadProps) {
                 <SelectValue placeholder="Вайб" />
               </div>
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent 
+              position="popper" 
+              className="z-[10000] max-h-[200px]"
+              sideOffset={4}
+            >
               <SelectItem value="none">Без вайба</SelectItem>
-              {vibes.map((vibe) => (
-                <SelectItem key={vibe.id} value={vibe.id}>
-                  {vibe.title}
+              {vibesLoading ? (
+                <SelectItem value="loading" disabled>
+                  Загрузка вайбов...
                 </SelectItem>
-              ))}
+              ) : vibesError ? (
+                <SelectItem value="error" disabled>
+                  Ошибка загрузки
+                </SelectItem>
+              ) : vibes.length === 0 ? (
+                <SelectItem value="empty" disabled>
+                  Нет доступных вайбов
+                </SelectItem>
+              ) : (
+                vibes.map((vibe) => (
+                  <SelectItem key={vibe.id} value={vibe.id}>
+                    {vibe.title}
+                  </SelectItem>
+                ))
+              )}
             </SelectContent>
           </Select>
         </div>

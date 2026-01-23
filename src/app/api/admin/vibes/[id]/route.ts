@@ -8,11 +8,11 @@ import { auth } from "@/lib/auth";
 import { deleteCache } from "@/lib/redis/client";
 
 const updateVibeSchema = z.object({
-  title: z.string().min(1).optional(),
+  title: z.string().min(1, "Название не должно быть пустым").optional(),
   description: z.string().optional(),
-  category: z.enum(["MONUMENTS", "PETS", "FACES", "SEASONAL"]).optional(),
-  thumbnailUrl: z.string().url().optional().or(z.literal("")),
-  promptTemplate: z.string().min(1).optional(),
+  category: z.string().optional(),
+  thumbnailUrl: z.string().optional(),
+  promptTemplate: z.string().min(1, "Шаблон промпта не должен быть пустым").optional(),
   isActive: z.boolean().optional(),
 });
 
@@ -62,15 +62,50 @@ export async function PATCH(
 
     // Валидация данных
     const body = await request.json();
+    
+    // Проверка что title и promptTemplate не пустые, если переданы
+    if (body.title !== undefined && (!body.title || body.title.trim() === "")) {
+      return NextResponse.json(
+        { error: "Название не должно быть пустым" },
+        { status: 400 }
+      );
+    }
+    
+    if (body.promptTemplate !== undefined && (!body.promptTemplate || body.promptTemplate.trim() === "")) {
+      return NextResponse.json(
+        { error: "Шаблон промпта не должен быть пустым" },
+        { status: 400 }
+      );
+    }
+    
     const validatedData = updateVibeSchema.parse(body);
+
+    // Подготовка данных для обновления
+    const updateData: any = {};
+    
+    if (validatedData.title !== undefined) {
+      updateData.title = validatedData.title.trim();
+    }
+    if (validatedData.promptTemplate !== undefined) {
+      updateData.promptTemplate = validatedData.promptTemplate.trim();
+    }
+    if (validatedData.description !== undefined) {
+      updateData.description = validatedData.description?.trim() || null;
+    }
+    if (validatedData.category !== undefined) {
+      updateData.category = validatedData.category || null;
+    }
+    if (validatedData.thumbnailUrl !== undefined) {
+      updateData.thumbnailUrl = validatedData.thumbnailUrl?.trim() || null;
+    }
+    if (validatedData.isActive !== undefined) {
+      updateData.isActive = validatedData.isActive;
+    }
 
     // Обновление вайба
     const updatedVibe = await prisma.vibe.update({
       where: { id },
-      data: {
-        ...validatedData,
-        thumbnailUrl: validatedData.thumbnailUrl || null,
-      },
+      data: updateData,
     });
 
     // Инвалидация кеша

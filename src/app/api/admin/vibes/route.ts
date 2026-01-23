@@ -1,4 +1,5 @@
 export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
@@ -9,10 +10,10 @@ import { setVibesCache, deleteCache } from "@/lib/redis/client";
 const createVibeSchema = z.object({
   title: z.string().min(1, "Название обязательно"),
   description: z.string().optional(),
-  category: z.enum(["MONUMENTS", "PETS", "FACES", "SEASONAL"]),
-  thumbnailUrl: z.string().url().optional(),
+  category: z.string().optional(),
+  thumbnailUrl: z.string().optional(),
   promptTemplate: z.string().min(1, "Шаблон промпта обязателен"),
-  isActive: z.boolean().default(true),
+  isActive: z.boolean().optional().default(true),
 });
 
 export async function POST(request: NextRequest) {
@@ -36,11 +37,34 @@ export async function POST(request: NextRequest) {
 
     // Валидация данных
     const body = await request.json();
+    
+    // Проверка обязательных полей
+    if (!body.title || body.title.trim() === "") {
+      return NextResponse.json(
+        { error: "Название обязательно и не должно быть пустым" },
+        { status: 400 }
+      );
+    }
+    
+    if (!body.promptTemplate || body.promptTemplate.trim() === "") {
+      return NextResponse.json(
+        { error: "Шаблон промпта обязателен и не должен быть пустым" },
+        { status: 400 }
+      );
+    }
+    
     const validatedData = createVibeSchema.parse(body);
 
     // Создание вайба
     const vibe = await prisma.vibe.create({
-      data: validatedData,
+      data: {
+        title: validatedData.title.trim(),
+        promptTemplate: validatedData.promptTemplate.trim(),
+        description: validatedData.description?.trim() || null,
+        category: validatedData.category as any || null,
+        thumbnailUrl: validatedData.thumbnailUrl?.trim() || null,
+        isActive: validatedData.isActive ?? true,
+      },
     });
 
     // Инвалидация кеша

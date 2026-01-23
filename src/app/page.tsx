@@ -205,17 +205,6 @@ function VideosList() {
 
   return (
     <div className="space-y-6 md:space-y-8">
-      {/* Section Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h2 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent mb-2">
-            Галерея видео
-          </h2>
-          <p className="text-sm md:text-base text-muted-foreground">
-            Изучайте созданные сообществом AI-видео
-          </p>
-        </div>
-      </div>
 
       {/* Tag Filters */}
       <div className="relative">

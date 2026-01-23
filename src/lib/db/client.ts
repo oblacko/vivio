@@ -25,6 +25,9 @@ if (!globalForPrisma.pool) {
     max: 10, // Максимум 10 соединений для Vercel
     idleTimeoutMillis: 30000, // Закрываем неактивные соединения через 30 секунд
     connectionTimeoutMillis: 10000, // Таймаут подключения 10 секунд
+    ssl: {
+      rejectUnauthorized: false, // Для Vercel Postgres и подобных сервисов
+    },
   });
 }
 

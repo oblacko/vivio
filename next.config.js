@@ -4,6 +4,7 @@ const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
   compress: true,
+  output: 'standalone',
 
   // Оптимизация изображений
   images: {
@@ -22,6 +23,14 @@ const nextConfig = {
   experimental: {
     // Оптимизация для serverless
     serverComponentsExternalPackages: ['@prisma/client', 'prisma'],
+    // Отключаем статическую генерацию для API роутов
+    serverActions: {
+      allowedOrigins: ['*'],
+    },
+    // Отключаем статическую генерацию для всех роутов, использующих headers
+    forceDynamic: {
+      patterns: ['**/api/**'],
+    },
   },
 
   // Security Headers для production

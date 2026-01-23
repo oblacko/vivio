@@ -96,7 +96,7 @@ function CreatePageContent() {
   }
 
   return (
-    <main className="container mx-auto px-4 py-8">
+    <main className="container mx-auto px-4 pt-16 pb-8 md:pt-8">
       <Link href="/">
         <Button variant="ghost" className="mb-4">
           <ArrowLeft className="w-4 h-4 mr-2" />
@@ -124,7 +124,7 @@ function CreatePageContent() {
               <SelectTrigger className="w-full max-w-md">
                 <SelectValue placeholder="Выберите вайб или оставьте пустым" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="z-[100]">
                 <SelectItem value="none">Без вайба</SelectItem>
                 {isLoading ? (
                   <SelectItem value="loading" disabled>

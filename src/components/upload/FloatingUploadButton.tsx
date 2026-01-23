@@ -59,7 +59,7 @@ export default function FloatingUploadButton() {
             {/* Градиентный фон */}
             <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-purple-500/5 to-pink-500/5 pointer-events-none" />
             
-            <div className="p-4 md:p-6 flex-1 flex flex-col relative z-10">
+            <div className="pt-16 pb-4 px-4 md:pt-6 md:pb-6 md:px-6 flex-1 flex flex-col relative z-10" style={{ paddingTop: 'max(4rem, env(safe-area-inset-top, 0) + 4rem)' }}>
               <FileUpload onClose={closeUpload} />
             </div>
           </SheetContent>

@@ -1,9 +1,10 @@
+export const runtime = "nodejs";
+export const dynamic = 'force-dynamic';
+
 import { NextRequest, NextResponse } from "next/server";
 import { put, del } from "@vercel/blob";
 import { getFileAsBlob } from "@/lib/storage/railway-storage";
 import { auth } from "@/lib/auth";
-
-export const runtime = "nodejs";
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const BLOB_READ_WRITE_TOKEN = process.env.BLOB_READ_WRITE_TOKEN;
